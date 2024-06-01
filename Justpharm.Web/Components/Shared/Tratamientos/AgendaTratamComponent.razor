@@ -1,0 +1,169 @@
+﻿@using Justpharm.Web.Components.Shared.Farmacos
+@using Justpharm.Web.Components.Shared.Perfil
+@using Justpharm.Web.Data
+@using Justpharm.Web.Data.Appointments
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@using Syncfusion.Blazor.Schedule
+@using System.Security.Claims
+
+<br />
+<br />
+
+<div class="container-flow">
+<div class="row">
+    <div class="col-6">
+
+            <h4>Mi agenda</h4>
+            <SfSchedule TValue=AppointmentData FirstDayOfWeek="1" EnableAutoRowHeight="true" CurrentView="View.Month" Width="100%" Height="700px" EnableAdaptiveUI="true">
+                    <ScheduleEvents TValue="AppointmentData" OnPopupOpen="OnPopupOpen"></ScheduleEvents>
+                <ScheduleEventSettings DataSource="@Appointments" TValue="AppointmentData" AllowEditing="false" AllowAdding="false" AllowDeleting="false" SortBy="StartTime" EnableTooltip="true">
+                    <Template>
+                        <div style="display: flex; justify-content: center; text-align: center">
+                            <div style="margin: 0 10px;">(@((context as AppointmentData).StartTime.ToShortTimeString())) @((context as AppointmentData).Subject)</div>
+                        </div>
+                    </Template>
+                    <TooltipTemplate>
+                        <div class="tooltip-wrap">
+                            <div>Titulo  : @((context as AppointmentData).Subject)</div>
+                            <div>Descripcion : @((context as AppointmentData).Description)</div>
+                            <div>Inicio  : @((context as AppointmentData).StartTime.ToShortDateString())</div>
+                            <div>Final : @((context as AppointmentData).EndTime.ToShortDateString()) </div>
+                        </div>
+                    </TooltipTemplate>
+                </ScheduleEventSettings>
+                <ScheduleViews>
+                    <ScheduleView Option="View.Agenda"></ScheduleView>
+                </ScheduleViews>
+            </SfSchedule>
+    </div>
+    <div class="col-6">
+            
+        <BuscadorFarmacos @ref="BuscadorRef"></BuscadorFarmacos>
+        <MisTratamientosGridComponent @ref="MisTratamientosRef" User="@User"></MisTratamientosGridComponent>
+
+    </div>
+
+</div>
+</div>
+<FormularioTomas @ref="FormularioRef" Tratam="@TratamientoEdit"></FormularioTomas>
+<BaseComponent @ref="BaseRef"></BaseComponent>
+@inject DbQry DbQry
+@code {
+    [Parameter] public ApplicationUser User { get; set; }
+    private List<Tratamiento> MisTratamientos = new();
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; }
+    private List<AppointmentData> Appointments = new();
+    FormularioTomas FormularioRef;
+    MisTratamientosGridComponent MisTratamientosRef;
+    private Tratamiento TratamientoEdit;
+    private string UsuarioId;
+    public BaseComponent BaseRef;
+    public BuscadorFarmacos BuscadorRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        
+        BuscadorRef.RefreshData += async (sender, args) => await OnCreated();
+        FormularioRef.RefreshData += async (sender, args) => await OnCreated();
+        MisTratamientosRef.RefreshData += async (sender, args) => await OnCreated();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var AuthState = await AuthenticationState;
+            var id = AuthState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (id == null) return;
+            var miUsuario = id;
+
+            MisTratamientos = DbQry.All<Tratamiento>(t => t.UsuarioId.Equals(id)).ToList();
+            Appointments.Clear();
+
+            foreach (var tratamiento in MisTratamientos)
+            {
+
+                var appointment = await GenerarAppointment(tratamiento);
+                Appointments.Add(appointment);
+            }
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+
+    }
+
+    private async Task OnCreated()
+    {
+        MisTratamientos = DbQry.All<Tratamiento>(t => t.UsuarioId == UsuarioId).ToList();
+        Appointments.Clear();
+
+        foreach (var tratamiento in MisTratamientos)
+        {
+            var appointment = await GenerarAppointment(tratamiento);
+            Appointments.Add(appointment);
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task OnPopupOpen(PopupOpenEventArgs<AppointmentData> args)
+    {
+        args.Cancel = true;
+    }
+
+    private async Task<AppointmentData> GenerarAppointment(Tratamiento tratamiento)
+    {
+        try
+        {
+
+            var app =  new AppointmentData
+                {
+                    Id = Guid.NewGuid(),
+                    Subject = tratamiento.Titulo,
+                    Description = tratamiento.Descripcion,
+                    StartTime = tratamiento.StartTime,
+                    EndTime = tratamiento.EndTime,
+                    IsAllDay = false,
+                    RecurrenceRule = string.IsNullOrEmpty(tratamiento.RecurrenceRule) ? tratamiento.RecurrenceRule : $"FREQ=DAILY;INTERVAL=1;UNTIL={tratamiento.EndTime.ToString("yyyyMMddTHHmmssZ")};",
+                    RecurrenceID = Random.Shared.Next(),
+                    Color = GetRandomColor()
+                };
+                return app;
+
+        }
+        catch (Exception ex)
+        {
+            //await Globals.ShowError(ex);
+            return new AppointmentData();
+        }
+    }
+
+    private string GetRandomColor()
+    {
+        Random random = new Random();
+        string randomColor = String.Format("#{0:X6}", random.Next(0x1000000));
+        return randomColor;
+    }
+
+    public async Task AsignacionColorAppointment(EventRenderedArgs<AppointmentData> args)
+    {
+        try
+        {
+
+            Dictionary<string, object> attributes = new Dictionary<string, object>();
+            attributes.Add("class", "badge rounded-pill");
+            attributes.Add("style", $"background-color: {args.Data.Color}; color: #fff");
+
+            args.Attributes = attributes;
+        }
+        catch (Exception ex)
+        {
+            // Manejo de errores
+        }
+    }
+
+}

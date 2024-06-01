@@ -1,0 +1,78 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aspnet-Justpharm.Web-c1eb1cff-626d-42ec-ad87-ae8778500eaa</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="wwwroot\favicon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\css\bootstrap\bootstrap.min.css.map" />
+    <None Include="wwwroot\css\open-iconic\FONT-LICENSE" />
+    <None Include="wwwroot\css\open-iconic\font\fonts\open-iconic.svg" />
+    <None Include="wwwroot\css\open-iconic\ICON-LICENSE" />
+    <None Include="wwwroot\css\open-iconic\README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Blazored.FluentValidation" Version="2.1.0" />
+    <PackageReference Include="log4net" Version="2.0.17" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.4" />
+    <PackageReference Include="SendGrid" Version="9.29.3" />
+    <PackageReference Include="Syncfusion.Blazor.BarcodeGenerator" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.Buttons" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.Calendars" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.Cards" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.Charts" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.Core" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.Data" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.DataForm" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.DropDowns" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.FileManager" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.Grid" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.Layouts" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.Navigations" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.PdfViewer" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.RichTextEditor" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.Schedule" Version="24.2.6" />
+	  <PackageReference Include="Syncfusion.Blazor.SfPdfViewer" Version="24.2.6" />
+    <PackageReference Include="Syncfusion.Blazor.Themes" Version="24.2.6" />
+    <PackageReference Include="Syncfusion.Blazor.WordProcessor" Version="24.2.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Justpharm.Library\Justpharm.Library.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\logo.svg">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Syncfusion.Blazor.Grids">
+      <HintPath>..\..\..\..\.nuget\packages\syncfusion.blazor.grid\24.2.6\lib\net8.0\Syncfusion.Blazor.Grids.dll</HintPath>
+    </Reference>
+    <Reference Include="Syncfusion.Blazor.Navigations">
+      <HintPath>..\..\..\..\.nuget\packages\syncfusion.blazor.navigations\24.2.6\lib\net8.0\Syncfusion.Blazor.Navigations.dll</HintPath>
+    </Reference>
+    <Reference Include="Syncfusion.Blazor.Notifications">
+      <HintPath>..\..\..\..\.nuget\packages\syncfusion.blazor.notifications\24.2.6\lib\net8.0\Syncfusion.Blazor.Notifications.dll</HintPath>
+    </Reference>
+    <Reference Include="Syncfusion.Blazor.Spinner">
+      <HintPath>..\..\..\..\.nuget\packages\syncfusion.blazor.spinner\24.2.6\lib\net8.0\Syncfusion.Blazor.Spinner.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

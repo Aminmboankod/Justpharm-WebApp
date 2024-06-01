@@ -1,0 +1,199 @@
+﻿@using Justpharm.Web.Data
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Microsoft.EntityFrameworkCore
+@using Syncfusion.Blazor.Grids
+
+<h4>Mis tratamientos</h4>
+<SfGrid DataSource="Tratamientos" Height="auto"
+    AllowResizing="true"
+    AllowReordering="false"
+    AllowGrouping="false"
+    ShowColumnMenu="false"
+    AllowPaging="true"
+    AllowSorting="true"
+    AllowFiltering="true"
+    AllowSelection="true"
+    Toolbar="@(new string[] {"Search"})"
+    ClipMode="ClipMode.EllipsisWithTooltip">
+    <GridEvents CommandClicked="OnCommandClicked" TValue="Tratamiento" ></GridEvents>
+    <GridSearchSettings IgnoreCase="true" IgnoreAccent="true"></GridSearchSettings>
+    <GridEditSettings AllowAdding="false" AllowDeleting="true" AllowEditing="true" AllowEditOnDblClick="false"></GridEditSettings>
+    <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu" IgnoreAccent="true" EnableCaseSensitivity="false"></GridFilterSettings>
+    <GridColumns>
+        <GridColumn AutoFit="false" Field="@nameof(Tratamiento.Titulo)" HeaderText="Tratamiento" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left"></GridColumn>
+        <GridColumn AutoFit="false" Field="@nameof(Tratamiento.StartTime)" HeaderText="Inicio" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" Format="d"></GridColumn>
+        <GridColumn AutoFit="false" Field="@nameof(Tratamiento.EndTime)" HeaderText="Fin" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" Format="d"></GridColumn>
+        <GridColumn AutoFit="false" Field="@nameof(Tratamiento.RecurrenceSumary)" HeaderText="Recurrencia" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left"></GridColumn>
+        <GridColumn AutoFit="false" Field="@nameof(Tratamiento.Descripcion)" HeaderText="Notas" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left"></GridColumn>
+        <GridColumn AutoFit="true" HeaderText="" HeaderTextAlign="TextAlign.Right" TextAlign="TextAlign.Right">
+            <GridCommandColumns>
+                <GridCommandColumn Type="CommandButtonType.Edit" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-edit", CssClass = "e-flat e-success" })"></GridCommandColumn>
+                <GridCommandColumn Type="CommandButtonType.Delete" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-delete", CssClass = "e-flat e-danger" })"></GridCommandColumn>
+                <GridCommandColumn Type="CommandButtonType.Save" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-update", CssClass = "e-flat" })"></GridCommandColumn>
+                <GridCommandColumn Type="CommandButtonType.Cancel" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-cancel-icon", CssClass = "e-flat" })"></GridCommandColumn>
+            </GridCommandColumns>
+        </GridColumn>
+    </GridColumns>
+</SfGrid>
+
+
+
+<FormularioTomas @ref="FormularioRef" Tratam="TratamientoEdit"></FormularioTomas>
+<BaseComponent @ref="BaseRef"></BaseComponent>
+
+@inject DbQry Qry
+@code {
+    [Parameter] public ApplicationUser User { get; set; }
+    BaseComponent BaseRef;
+    FormularioTomas FormularioRef;
+    SfGrid<List<Tratamiento>> GridTratamientos;
+    private Tratamiento TratamientoEdit;
+    public List<Tratamiento> Tratamientos { get; set; } = new List<Tratamiento>();
+    public event EventHandler RefreshData;
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (!firstRender) return;
+
+            FormularioRef.RefreshData += async (sender, args) => await OnCreated();
+
+            await OnCreated();
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError($"No ha sido posible cargar los datos: {ex}");
+        }
+    }
+
+    private async Task OnCreated()
+    {
+        try
+        {
+            Tratamientos = Qry.All<Tratamiento>(t => t.UsuarioId == User.Id).DistinctBy(t => t.UidTomas).ToList();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError($"No ha sido posible cargar los datos: {ex}");
+        }
+    }
+
+    public async Task OnActionComplete(ActionEventArgs<Tratamiento> args)
+    {
+        try
+        {
+            if (args.RequestType == Syncfusion.Blazor.Grids.Action.Save && args.Action == "Add")
+            {
+
+            }
+            if (args.RequestType == Syncfusion.Blazor.Grids.Action.Save && args.Action == "Edit")
+            {
+
+            }
+            if (args.RequestType.Equals(Syncfusion.Blazor.Grids.Action.BeginEdit))
+            {
+
+            }
+            if (args.RequestType.Equals(Syncfusion.Blazor.Grids.Action.Delete))
+            {
+
+            }
+            if (args.RequestType.Equals(Syncfusion.Blazor.Grids.Action.Add))
+            {
+
+            }
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+    public async void OnCommandClicked(CommandClickEventArgs<Tratamiento> args)
+    {
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Edit))
+        {
+            args.Cancel = true;
+            await EditarTratamiento(args.RowData);
+        }
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Delete))
+        {
+            args.Cancel = true;
+            await EliminarTratamiento(args.RowData);
+        }
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Save))
+        {
+            args.Cancel = true;
+            Tratamientos = Qry.All<Tratamiento>(t => t.UsuarioId == User.Id).ToList();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task EliminarTratamiento(Tratamiento tratamiento)
+    {
+        try
+        {
+            // Verificar que el tratamiento existe antes de eliminarlo
+            var existingTratamiento = Qry.First<Tratamiento>(t => t.UidTratamiento == tratamiento.UidTratamiento);
+            if (existingTratamiento != null)
+            {
+                var listadoTomas = Qry.All<Tratamiento>(t => t.UidTomas == existingTratamiento.UidTomas);
+                var medicamentoAsociado = Qry.First<Medicamento>(m => m.UidMedicamento == tratamiento.UidMedicamento);
+
+                foreach (Tratamiento toma in listadoTomas)
+                {
+                    Qry.Delete(toma);
+                }
+                if (medicamentoAsociado != null) Qry.Delete(medicamentoAsociado);
+                
+                await BaseRef.ShowSuccess("El tratamiento ha sido eliminado correctamente.");
+                await OnCreated(); // Actualizar la lista de tratamientos después de la eliminación
+                RefreshData?.Invoke(this, EventArgs.Empty);
+            }
+            else
+            {
+                await BaseRef.ShowError("El tratamiento ya ha sido eliminado por otra operación.");
+            }
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await BaseRef.ShowError("No se pudo eliminar el tratamiento debido a cambios concurrentes.");
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError($"No ha sido posible eliminar el tratamiento: {ex}");
+        }
+    }
+    private async Task EditarTratamiento(Tratamiento tratamiento)
+    {
+        try
+        {
+            // Verificar que el tratamiento existe antes de editarlo
+            var existingTratamiento = Qry.First<Tratamiento>(t => t.UidTratamiento == tratamiento.UidTratamiento);
+            if (existingTratamiento != null)
+            {
+                // Añadir aquí la lógica para editar el tratamiento abriendo el formulario de
+                TratamientoEdit = tratamiento;
+                await InvokeAsync(StateHasChanged);
+                await FormularioRef.Clic();
+                RefreshData?.Invoke(this, EventArgs.Empty);
+            }
+            else
+            {
+                await BaseRef.ShowError("No se encuentra el tratamiento seleccionado.");
+            }
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await BaseRef.ShowError("No se pudo editar el tratamiento debido a cambios concurrentes.");
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError($"No ha sido posible editar el tratamiento: {ex}");
+        }
+    }
+
+}

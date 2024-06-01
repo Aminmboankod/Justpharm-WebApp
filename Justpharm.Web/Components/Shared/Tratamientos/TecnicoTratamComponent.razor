@@ -1,0 +1,395 @@
+﻿@using Justpharm.Library.Models.Medical
+@using Justpharm.Web.Components.Shared.Farmacos
+@using Justpharm.Web.Data
+@using Justpharm.Web.Data.Appointments
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Justpharm.Web.Services
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.EntityFrameworkCore
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Schedule
+@using System.Security.Claims
+
+<div class="container-flow">
+    <div class="row">
+        <div class="col-12" style="padding-bottom:20px">
+            <h5 style="text-align:center">Seleccione un paciente</h5>
+            <SfDropDownList TValue="Guid" CssClass="buscador" TItem="Paciente" Enabled="true" DataSource="@MisPacientes" FloatLabelType="FloatLabelType.Always" AllowFiltering="true" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains" @bind-Value="@PacienteSeleccionado">
+                <DropDownListFieldSettings Text="@nameof(Paciente.Nombre)" Value="@nameof(Paciente.UidPaciente)"></DropDownListFieldSettings>
+                <DropDownListEvents TItem="Paciente" TValue="Guid" ValueChange="ActionBeginDropDown"></DropDownListEvents>
+                <DropDownListTemplates TItem="Paciente">
+                    <ItemTemplate>
+                        <span style="font-size:15px; padding-left:18px"><span class='name'>@((context as Paciente).Nombre) @((context as Paciente).Apellidos)</span><span class='country'>@((context as Paciente).DNI)</span></span>
+                    </ItemTemplate>
+                    <ValueTemplate>
+                        <span style="font-size:15px; padding-left:18px; padding-top:10px">@((context as Paciente).Nombre) @((context as Paciente).Apellidos) @((context as Paciente).DNI)</span>
+                    </ValueTemplate>
+                </DropDownListTemplates>
+            </SfDropDownList>
+        </div>
+    </div>
+    <div class="col-12 rounded-corner" style="background-color:white">
+        <SfGrid @ref="GridTratamientos" DataSource="@MisTratamientos" Height="350px"
+            AllowResizing="true"
+            AllowReordering="false"
+            AllowGrouping="false"
+            ShowColumnMenu="false"
+            AllowPaging="true"
+            AllowSorting="true"
+            AllowFiltering="true"
+            AllowSelection="true"
+            Toolbar="@(new string[] {"Print", "Search"})"
+            ClipMode="ClipMode.EllipsisWithTooltip">
+            <GridPageSettings PageSize="11"></GridPageSettings>
+            <GridEvents OnActionBegin="@OnActionBegin" OnActionComplete="@OnActionComplete" CommandClicked="OnCommandClicked" TValue="Tratamiento"></GridEvents>
+            <GridSearchSettings IgnoreCase="true" IgnoreAccent="true"></GridSearchSettings>
+            <GridEditSettings AllowAdding="false" AllowDeleting="true" AllowEditing="true" AllowEditOnDblClick="false" ShowDeleteConfirmDialog="true" ShowConfirmDialog="true" Mode="EditMode.Dialog"></GridEditSettings>
+            <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu" IgnoreAccent="true" EnableCaseSensitivity="false"></GridFilterSettings>
+            <GridColumns>
+                <GridColumn AutoFit="false" Field="@nameof(Tratamiento.Titulo)" HeaderText="Tratamiento" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left"></GridColumn>
+                <GridColumn AutoFit="false" Field="@nameof(Tratamiento.UidPaciente)" HeaderText="Paciente" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left">
+                    <Template>
+                        @{
+                            var paciente = (context as Tratamiento).UidPaciente;
+                            var p = MisPacientes.FirstOrDefault(t => t.UidPaciente == paciente);
+                        }
+                        <span>@(p.Nombre) @(p.Apellidos)</span>
+                    </Template>
+                </GridColumn>
+                <GridColumn AutoFit="false" Field="@nameof(Tratamiento.StartTime)" HeaderText="Inicio" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" Format="d"></GridColumn>
+                <GridColumn AutoFit="false" Field="@nameof(Tratamiento.EndTime)" HeaderText="Fin" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" Format="d"></GridColumn>
+                <GridColumn AutoFit="false" Field="@nameof(Tratamiento.Tomas)" HeaderText="Dosis" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left">
+                    <Template>
+                            @{
+                                var tomas = (context as Tratamiento).Tomas;
+                            }
+                        <span>@(tomas) tomas/día</span>
+                    </Template>
+                </GridColumn>
+                <GridColumn AutoFit="false" Field="@nameof(Tratamiento.Intervalo)" HeaderText="Tomas" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left">
+                    <Template>
+                        @{
+                            var medicamento = (context as Tratamiento).Intervalo;
+                        }
+                        <span>cada @(medicamento) horas</span>
+                    </Template>
+                </GridColumn>
+                <GridColumn AutoFit="false" Field="@nameof(Tratamiento.RecurrenceSumary)" HeaderText="Recurrencia" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left"></GridColumn>
+                <GridColumn AutoFit="false" Field="@nameof(Tratamiento.Descripcion)" HeaderText="Notas" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left"></GridColumn>
+                <GridColumn AutoFit="true" HeaderText="" HeaderTextAlign="TextAlign.Right" TextAlign="TextAlign.Right">
+                    <GridCommandColumns>
+                        <GridCommandColumn Type="CommandButtonType.Edit" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-edit", CssClass = "e-flat e-success" })"></GridCommandColumn>
+                        <GridCommandColumn Type="CommandButtonType.Delete" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-delete", CssClass = "e-flat e-danger" })"></GridCommandColumn>
+                        <GridCommandColumn Type="CommandButtonType.Save" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-update", CssClass = "e-flat" })"></GridCommandColumn>
+                        <GridCommandColumn Type="CommandButtonType.Cancel" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-cancel-icon", CssClass = "e-flat" })"></GridCommandColumn>
+                    </GridCommandColumns>
+                </GridColumn>
+            </GridColumns>
+        </SfGrid>
+    </div>  
+</div>
+
+<FormularioTomas @ref="FormularioRef" PacienteSeleccionado="PacienteSeleccionado" Tratam="TratamientoEdit" MisPacientes="MisPacientes" Farmaco="_Medicamento"></FormularioTomas>
+<BaseComponent @ref="BaseRef"></BaseComponent>
+@inject DbQry DbQry
+@code {
+    [Parameter] public ApplicationUser User { get; set; }
+    private List<Tratamiento> MisTratamientos = new();
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; }
+    private List<AppointmentData> Appointments = new();
+    FormularioTomas FormularioRef;
+    MisTratamientosGridComponent MisTratamientosRef;
+    SfGrid<Tratamiento> GridTratamientos;
+    private Tratamiento TratamientoEdit;
+    private string UsuarioId;
+    public BaseComponent BaseRef;
+    public BuscadorFarmacos BuscadorRef;
+    public List<Paciente> MisPacientes = new();
+    public PerfilUsuario Perfil = new();
+    public Guid PacienteSeleccionado;
+    public CimaResponse FarmacoSelected = new();
+    public Medicamento _Medicamento = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        FormularioRef.RefreshData += async (sender, args) => await OnCreated();
+        Perfil = DbQry.First<PerfilUsuario>(t => t.IdAspNetUser == User.Id);
+        MisPacientes = DbQry.All<Paciente>(t => t.UidUsuarioGestor == Perfil!.UidPerfil).ToList();
+        MisPacientes.Insert(0, new Paciente { UidPaciente = Guid.Empty, Nombre = "Todos" });
+        PacienteSeleccionado = Guid.Empty;
+
+        var UidMisPacientes = MisPacientes.Select(t => t.UidPaciente).ToList();
+        MisTratamientos = DbQry.All<Tratamiento>(t => UidMisPacientes.Contains(t.UidPaciente.Value)).DistinctBy(t => t.UidTomas).ToList();
+
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var AuthState = await AuthenticationState;
+            var id = AuthState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (id == null) return;
+            var miUsuario = id;
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+
+    }
+
+    public async Task OnActionBegin(Syncfusion.Blazor.Grids.ActionEventArgs<Tratamiento> args)
+    {
+        try
+        {
+            if (args.RequestType == Syncfusion.Blazor.Grids.Action.Save && args.Action == "Edit")
+            {
+            }
+            if (args.RequestType.Equals(Syncfusion.Blazor.Grids.Action.BeginEdit))
+            {
+                args.Cancel = true;
+                await EditarTratamiento(args.RowData);
+
+            }
+            if (args.RequestType.Equals(Syncfusion.Blazor.Grids.Action.Delete))
+            {
+                args.Cancel = true;
+                await EliminarTratamiento(args.RowData);
+            }
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError("Ha ocurrido algún error, pruebe a recargar la página por favor");
+        }
+    }
+
+    public async Task OnActionComplete(Syncfusion.Blazor.Grids.ActionEventArgs<Tratamiento> args)
+    {
+        if (args.RequestType == Syncfusion.Blazor.Grids.Action.Save && args.Action == "Edit")
+        {
+            PacienteSeleccionado = Guid.Empty;
+            await GridTratamientos.Refresh();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+
+    public async void OnCommandClicked(CommandClickEventArgs<Tratamiento> args)
+    {
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Edit))
+        {
+
+        }
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Delete))
+        {
+
+        }
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Save))
+        {
+
+        }
+    }
+
+    private async Task EliminarTratamiento(Tratamiento tratamiento)
+    {
+        try
+        {
+            // Verificar que el tratamiento existe antes de eliminarlo
+            var existingTratamiento = DbQry.First<Tratamiento>(t => t.UidTratamiento == tratamiento.UidTratamiento);
+            if (existingTratamiento != null)
+            {
+                List<Toma> listadoTomas = DbQry.All<Toma>(t => t.UidTratamiento == existingTratamiento.UidTratamiento);
+                var lsitadorecurrencetratam = DbQry.All<Tratamiento>(t => t.UidTomas == existingTratamiento.UidTomas);
+                var medicamentoAsociado = DbQry.First<Medicamento>(m => m.UidMedicamento == tratamiento.UidMedicamento);
+
+                foreach (Toma toma in listadoTomas)
+                {
+                    DbQry.Delete(toma);
+                }
+
+                foreach (Tratamiento recurrencetratam in lsitadorecurrencetratam)
+                {
+                    DbQry.Delete(recurrencetratam);
+                }
+                if (medicamentoAsociado != null) DbQry.Delete(medicamentoAsociado);
+
+                await BaseRef.ShowSuccess("El tratamiento ha sido eliminado correctamente.");
+                await OnCreated(); // Actualizar la lista de tratamientos después de la eliminación
+            }
+            else
+            {
+                await BaseRef.ShowError("El tratamiento ya ha sido eliminado por otra operación.");
+            }
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await BaseRef.ShowError("No se pudo eliminar el tratamiento debido a cambios concurrentes.");
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError($"No ha sido posible eliminar el tratamiento: {ex}");
+        }
+    }
+
+    private async Task EditarTratamiento(Tratamiento tratamiento)
+    {
+        try
+        {
+            // if (GridTratamientos.SelectedRecords.First() == null)
+            // {
+            //     await BaseRef.ShowWarning("Selecciona un tratamiento para poder editarlo");
+            // }
+            // Verificar que el tratamiento existe antes de editarlo
+            var existingTratamiento = DbQry.First<Tratamiento>(t => t.UidTratamiento == tratamiento.UidTratamiento);
+            if (existingTratamiento != null)
+            {
+                // Añadir aquí la lógica para editar el tratamiento abriendo el formulario de
+                TratamientoEdit = tratamiento;
+                var med = DbQry.First<Medicamento>(m => m.UidMedicamento == tratamiento.UidMedicamento);
+                _Medicamento = med;
+                PacienteSeleccionado = tratamiento.UidPaciente.GetValueOrDefault();
+                await InvokeAsync(StateHasChanged);
+                await FormularioRef.Clic();
+
+            }
+            else
+            {
+                await BaseRef.ShowError("No se encuentra el tratamiento seleccionado.");
+            }
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await BaseRef.ShowError("No se pudo editar el tratamiento debido a cambios concurrentes.");
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError($"No ha sido posible editar el tratamiento: {ex}");
+        }
+    }
+
+    private async Task ActionBeginDropDown()
+    {
+        if (PacienteSeleccionado == Guid.Empty)
+        {
+            var UidMisPacientes = MisPacientes.Select(t => t.UidPaciente).ToList();
+            MisTratamientos = DbQry.All<Tratamiento>(t => UidMisPacientes.Contains(t.UidPaciente.Value)).DistinctBy(t => t.UidTomas).ToList();
+        }
+        else MisTratamientos = DbQry.All<Tratamiento>(t => t.UidPaciente == PacienteSeleccionado).DistinctBy(t => t.UidTomas).ToList();
+        await InvokeAsync(StateHasChanged);
+        await GridTratamientos.Refresh();
+    }
+
+    private async Task OnCreated()
+    {
+        Perfil = DbQry.First<PerfilUsuario>(t => t.IdAspNetUser == User.Id);
+        MisPacientes = DbQry.All<Paciente>(t => t.UidUsuarioGestor == Perfil!.UidPerfil).ToList();
+        MisPacientes.Insert(0, new Paciente { UidPaciente = Guid.Empty, Nombre = "Todos" });
+        PacienteSeleccionado = Guid.Empty;
+        var UidMisPacientes = MisPacientes.Select(t => t.UidPaciente).ToList();
+        MisTratamientos = DbQry.All<Tratamiento>(t => UidMisPacientes.Contains(t.UidPaciente.Value)).DistinctBy(t => t.UidTomas).ToList();
+        await GridTratamientos.Refresh();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task OnPopupOpen(PopupOpenEventArgs<AppointmentData> args)
+    {
+        args.Cancel = true;
+    }
+
+    private async Task<AppointmentData> GenerarAppointment(Tratamiento tratamiento)
+    {
+        try
+        {
+
+            var app = new AppointmentData
+                {
+                    Id = Guid.NewGuid(),
+                    Subject = tratamiento.Titulo,
+                    Description = tratamiento.Descripcion,
+                    StartTime = tratamiento.StartTime,
+                    EndTime = tratamiento.EndTime,
+                    IsAllDay = false,
+                    RecurrenceRule = string.IsNullOrEmpty(tratamiento.RecurrenceRule) ? tratamiento.RecurrenceRule : $"FREQ=DAILY;INTERVAL=1;UNTIL={tratamiento.EndTime.ToString("yyyyMMddTHHmmssZ")};",
+                    RecurrenceID = Random.Shared.Next(),
+                    Color = GetRandomColor()
+                };
+            return app;
+
+        }
+        catch (Exception ex)
+        {
+            //await Globals.ShowError(ex);
+            return new AppointmentData();
+        }
+    }
+
+    private string GetRandomColor()
+    {
+        Random random = new Random();
+        string randomColor = String.Format("#{0:X6}", random.Next(0x1000000));
+        return randomColor;
+    }
+
+    public async Task AsignacionColorAppointment(EventRenderedArgs<AppointmentData> args)
+    {
+        try
+        {
+
+            Dictionary<string, object> attributes = new Dictionary<string, object>();
+            attributes.Add("class", "badge rounded-pill");
+            attributes.Add("style", $"background-color: {args.Data.Color}; color: #fff");
+
+            args.Attributes = attributes;
+        }
+        catch (Exception ex)
+        {
+            // Manejo de errores
+        }
+    }
+
+}
+
+<style>
+
+    .country {
+        right: 15px;
+        position: absolute;
+    }
+
+    .rounded-corner {
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+        border-radius: 25px;
+        overflow: hidden;
+        width: 100%;
+    }
+
+        .rounded-corner:hover {
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
+        }
+
+    /* Estilo para el input tipo buscador similar al de Google */
+    .buscador {
+        padding: 10px 30px 10px 10px !important; /* Ajusta el padding según necesidad */
+        border: 1px solid #ccc !important; /* Borde del input */
+        border-radius: 20px !important; /* Bordes redondeados */
+        box-sizing: border-box !important; /* Incluye el padding y el borde en el ancho total */
+        outline: none !important; /* Quita el contorno al hacer clic en el input */
+    }
+
+    .e-ddl.e-input-group .e-input-value, .e-ddl.e-input-group .e-input-value:focus {
+        font-family: inherit;
+        font-size: 14px;
+        height: auto;
+        margin: 0;
+        outline: none;
+        width: 100%;
+        padding-top: 7px;
+    }
+</style>

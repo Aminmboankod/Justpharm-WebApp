@@ -1,0 +1,126 @@
+﻿{
+   "CodeGenerationMode": 3,
+   "ContextClassName": "JustpharmContext",
+   "ContextNamespace": null,
+   "DefaultDacpacSchema": null,
+   "FilterSchemas": false,
+   "IncludeConnectionString": true,
+   "ModelNamespace": null,
+   "OutputContextPath": null,
+   "OutputPath": "Models",
+   "PreserveCasingWithRegex": true,
+   "ProjectRootNamespace": "Justpharm.Web",
+   "Schemas": null,
+   "SelectedHandlebarsLanguage": 2,
+   "SelectedToBeGenerated": 0,
+   "T4TemplatePath": null,
+   "Tables": [
+      {
+         "Name": "[dbo].[_MaestroCuidados]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[_MaestroDietas]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[_MaestroNecesidades]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[_MaestroPerfil]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AspNetRoleClaims]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AspNetRoles]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AspNetUserClaims]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AspNetUserLogins]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AspNetUserRoles]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AspNetUsers]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AspNetUserTokens]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Centros]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Cuidado]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[EfectoSecundario]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Favoritos]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Medicamento]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Notificacion]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Paciente]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[PerfilUsuario]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Toma]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Tratamiento]",
+         "ObjectType": 0
+      }
+   ],
+   "UiHint": "b81a7c17a940.Justpharm.dbo",
+   "UncountableWords": null,
+   "UseBoolPropertiesWithoutDefaultSql": false,
+   "UseDatabaseNames": true,
+   "UseDateOnlyTimeOnly": false,
+   "UseDbContextSplitting": false,
+   "UseDecimalDataAnnotationForSprocResult": true,
+   "UseFluentApiOnly": false,
+   "UseHandleBars": false,
+   "UseHierarchyId": false,
+   "UseInflector": false,
+   "UseLegacyPluralizer": false,
+   "UseManyToManyEntity": false,
+   "UseNoDefaultConstructor": false,
+   "UseNoNavigations": false,
+   "UseNoObjectFilter": false,
+   "UseNodaTime": false,
+   "UseNullableReferences": true,
+   "UsePrefixNavigationNaming": false,
+   "UseSchemaFolders": false,
+   "UseSchemaNamespaces": false,
+   "UseSpatial": false,
+   "UseT4": true
+}

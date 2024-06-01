@@ -1,0 +1,278 @@
+﻿@page "/"
+
+@using Justpharm.Web.Components.Shared
+@using Justpharm.Web.Components.Shared.Cuidados
+@using Justpharm.Web.Components.Shared.Farmacos
+@using Justpharm.Web.Components.Shared.Informes
+@using Justpharm.Web.Components.Shared.Pacientes
+@using Justpharm.Web.Components.Shared.Perfil
+@using Justpharm.Web.Components.Shared.Tomas
+@using Justpharm.Web.Components.Shared.Tratamientos
+@using Justpharm.Web.Data
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Microsoft.AspNetCore.Identity
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Cards
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Navigations
+@using System.Security.Claims
+@using Syncfusion.Blazor.Notifications
+
+@* Solo faltaría dar permisos a los usuarios anónimos o usuarios normales *@
+@attribute [Authorize(Roles = "Paciente,Técnico,Encargado,Administrador")]
+@rendermode InteractiveServer
+
+    <CascadingValue Value="this">
+    <SfTab      
+    
+    CssClass="tab-container fitness-tab" 
+    HeaderPlacement="@HeaderPosition.Top"
+    OverflowMode="OverflowMode.Popup">
+
+        <TabEvents></TabEvents>
+        <TabAnimationSettings>
+            <TabAnimationPrevious Effect="Syncfusion.Blazor.AnimationEffect.None"></TabAnimationPrevious>
+            <TabAnimationNext Effect="Syncfusion.Blazor.AnimationEffect.None"></TabAnimationNext>
+        </TabAnimationSettings>
+        <TabItems >
+            <TabItem>
+                <ChildContent>
+                    <TabHeader Text="ESTADÍSTICAS" IconCss="bi-columns" IconPosition="top"></TabHeader>
+                </ChildContent>
+                <ContentTemplate>
+                    <div class="container-fluid" style="padding-top:50px">
+                        <DashboardComponent></DashboardComponent>
+                    </div>
+                </ContentTemplate>
+            </TabItem>
+            <TabItem>
+                <ChildContent>
+                    <TabHeader Text="PACIENTES" IconCss="bi-person" IconPosition="top"></TabHeader>
+                </ChildContent>
+                <ContentTemplate>
+                        <AuthorizeView Roles="Técnico,Encargado,Administrador">
+                            <Authorized>
+                                <div class="container-flow" style="padding:40px;">
+                                <GridPacientes User="@User" />
+                                </div>
+                            </Authorized>
+                            <NotAuthorized>
+                                <EnMantenimientoComponent></EnMantenimientoComponent>
+                            </NotAuthorized>
+                        </AuthorizeView>
+                </ContentTemplate>
+            </TabItem>
+            <TabItem>
+                <ChildContent>
+                    <TabHeader Text="TRATAMIENTOS" IconCss="bi-capsule" IconPosition="top"></TabHeader>
+                </ChildContent>
+                <ContentTemplate>
+                    <div class="container-flow" style="padding-top:50px; padding-bottom:138px">
+                        <AuthorizeView Roles="Técnico,Encargado,Administrador">
+                            <Authorized>
+                                <TecnicoTratamComponent User="@User"></TecnicoTratamComponent>
+                            </Authorized>
+                            <NotAuthorized>
+                                <EnMantenimientoComponent></EnMantenimientoComponent>
+                            </NotAuthorized>
+                        </AuthorizeView>                        
+                    </div>
+                </ContentTemplate>
+            </TabItem>
+            <TabItem>
+                <ChildContent>
+                    <TabHeader Text="CALENDARIO" IconCss="bi-calendar-week" IconPosition="top"></TabHeader>
+                </ChildContent>
+                <ContentTemplate>
+                        <AuthorizeView Roles="Técnico,Encargado,Administrador">
+                            <Authorized>
+                                <CalendarioTomas User="@User"></CalendarioTomas>
+                            </Authorized>
+                            <NotAuthorized>
+                                <EnMantenimientoComponent></EnMantenimientoComponent>
+                            </NotAuthorized>
+                        </AuthorizeView>
+                </ContentTemplate>
+            </TabItem>
+            <TabItem>
+                <ChildContent>
+                    <TabHeader Text="TOMAS" IconCss="bi-clipboard2-check" IconPosition="top"></TabHeader>
+                </ChildContent>
+                <ContentTemplate>
+                    <div class="container-fluid">
+                        <AuthorizeView Roles="Técnico,Encargado,Administrador">
+                            <Authorized>
+                                <ListadoTomasComponent User="@User"></ListadoTomasComponent>
+                            </Authorized>
+                            <NotAuthorized>
+                                <EnMantenimientoComponent></EnMantenimientoComponent>
+                            </NotAuthorized>
+                        </AuthorizeView>
+                    </div>
+                </ContentTemplate>
+            </TabItem>
+@*             <TabItem>
+                <ChildContent>
+                    <TabHeader Text="MIS INFORMES" IconCss="bi-bar-chart" IconPosition="top"></TabHeader>
+                </ChildContent>
+                <ContentTemplate>
+                    <div class="container" style="padding:30px">
+                        <ListadoInformesComponent></ListadoInformesComponent>
+                    </div>
+                </ContentTemplate>
+            </TabItem> *@
+            <TabItem>
+                <ChildContent>
+                    <TabHeader Text="CUIDADOS" IconCss="bi-activity" IconPosition="top"></TabHeader>
+                </ChildContent>
+                <ContentTemplate>
+                    <div>
+                        <CuidadosComponent User="@User" />
+                    </div>
+                </ContentTemplate>
+            </TabItem>
+            <TabItem>
+                <ChildContent>
+                    <TabHeader Text="FÁRMACOS" IconCss="bi-info-square" IconPosition="top"></TabHeader>
+                </ChildContent>
+                <ContentTemplate>
+                    <div style="padding-top:50px">
+                        <DashboardFarmacosComponent></DashboardFarmacosComponent>
+                    </div>
+                </ContentTemplate>
+            </TabItem>
+            <TabItem>
+                <ChildContent>
+                    <TabHeader Text="CUESTIONARIO SALUD" IconCss="bi-chat-heart" IconPosition="top"></TabHeader>
+                </ChildContent>
+                <ContentTemplate>
+                    <div>
+                        <ChatComponent></ChatComponent>
+                    </div>
+                </ContentTemplate>
+            </TabItem>
+        </TabItems>
+    </SfTab>
+
+</CascadingValue>
+<BaseComponent @ref="BaseRef"></BaseComponent>
+<style>
+    .e-tab {
+        height:max-content
+    }
+    .e-tab .e-content .e-item {
+        color: rgb(32, 201, 151);
+        font-size: 14px;
+        height: 100%
+    }
+
+    .e-tab -e-tab-header {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items:center;
+        border: 1px black;
+    }
+    .fitness-tab {
+        border: 1px black;
+    }
+</style>
+<style>
+    .msg-default-section .content-section {
+        margin: 0 auto;
+        max-width: 520px;
+        padding-top: 10px;
+        font-size: 24px;
+    }
+
+    .msg-default-section .e-message {
+        margin: 10px 0;
+        font-size: 24px;
+    }
+
+
+</style>
+@inject DbQry db
+@inject UserManager<ApplicationUser> userManager
+@code{
+    [Parameter] public bool IsInitialized { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; }
+    public string UserId { get; private set; }
+    public AuthenticationState AuthState { get; private set; }
+    public BaseComponent BaseRef;
+    public ApplicationUser User;
+    public bool EsPaciente = false;
+    public bool Renderizado = false;
+    private PerfilDialogoComponent PerfilDialog;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+
+            AuthState = await AuthenticationState;
+            var id = AuthState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (id == null) return;
+            UserId = id;
+
+            User = await userManager.FindByIdAsync(UserId);
+
+            await ComprobarPaciente(User);
+            Renderizado = true;
+
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+    }
+
+    private async Task AbrirDialogo()
+    {
+        PerfilDialog.User = User;
+        await PerfilDialog.Clic();
+    }
+
+    private Paciente _paciente { get; set; }
+    private bool Masculino { get; set; } = false;
+    private async Task ComprobarPaciente(ApplicationUser user)
+    {
+        _paciente = db.First<Paciente>(p => p.UserId == user.Id);
+        if (_paciente == null)
+        {
+            _paciente = new Paciente();
+            _paciente.UserId = user.Id;
+            EsPaciente = false;
+        }
+        else
+        {
+            EsPaciente = true;
+        }
+
+    }
+
+    private async Task GuardarDP()
+    {
+        try
+        {
+            if (User == null)
+            {
+                await BaseRef.ShowWarning("No se ha encontrado el usuario");
+                return;
+            }
+            await userManager.AddToRoleAsync(User, "Usuario");
+            _paciente.UserId = User.Id;
+            _paciente.SexoMasculino = Masculino;
+            db.UpdateOrInsert(_paciente);
+            await BaseRef.ShowSuccess("Datos guardados correctamente");
+
+            EsPaciente = true;
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex.Message);
+        }
+    }
+}

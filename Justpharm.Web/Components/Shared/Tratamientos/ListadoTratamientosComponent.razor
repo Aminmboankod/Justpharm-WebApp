@@ -1,0 +1,165 @@
+﻿@using Justpharm.Web.Data
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Microsoft.EntityFrameworkCore
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Cards
+
+
+@* Listado de tratamientos cargados *@
+
+@if (Tratamientos != null)
+{
+    <div class="row" style="max-height:550px">
+        @foreach (var tratamiento in Tratamientos)
+        {
+            <div class="row">
+                <SfCard Orientation="CardOrientation.Horizontal">
+                    <CardContent>
+                        <div class="card-header text-center"><b>@tratamiento.Titulo</b></div>
+                        <p class="card-text">@tratamiento.Descripcion</p>
+                        <p class="card-text">Inicio: @tratamiento.StartTime.ToShortDateString()</p>
+                        <p class="card-text">Fin: @tratamiento.EndTime.ToShortDateString()</p>
+                    </CardContent>
+                    <CardFooter Orientation="CardOrientation.Vertical"  >
+                        <div class="col md-3 p-5">
+                            <div class="row p-2">
+                                <SfButton IconCss="bi bi-arrows-fullscreen" OnClick="(args) => VerDetalles(tratamiento)" CssClass="e-secondary" Content="Detalles" />
+                            </div>
+                            <div class="row p-2">
+                                <SfButton IconCss="bi bi-pencil" OnClick="(args) => EditarTratamiento(tratamiento)" CssClass="e-primary" Content="Editar" />
+                            </div>
+                            <div class="row p-2">
+                                <SfButton IconCss="bi bi-trash" OnClick="(args) => EliminarTratamiento(tratamiento)" CssClass="e-danger" Content="Borrar" />
+                            </div>
+                        </div>
+                    </CardFooter>
+                </SfCard>                
+            </div>
+        }
+    </div>
+}
+else
+{
+    <p>No hay tratamientos cargados</p>
+}
+<FormularioTomas @ref="FormularioRef" Tratam="TratamientoEdit"></FormularioTomas>
+<BaseComponent @ref="BaseRef"></BaseComponent>
+
+@inject DbQry Qry
+@code {
+    [Parameter] public ApplicationUser User { get; set; }
+    BaseComponent BaseRef;
+    FormularioTomas FormularioRef;
+    private Tratamiento TratamientoEdit;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await OnCreated();
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError($"No ha sido posible cargar los datos: {ex}");
+        }
+    }
+
+    public List<Tratamiento> Tratamientos { get; set; }
+
+    private async Task OnCreated()
+    {
+        try
+        {
+            Tratamientos = Qry.All<Tratamiento>(t => t.UsuarioId == User.Id).DistinctBy(t => t.UidTomas).ToList();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError($"No ha sido posible cargar los tratamientos: {ex}");
+        }
+    }
+
+    private async Task EliminarTratamiento(Tratamiento tratamiento)
+    {
+        try
+        {
+            // Verificar que el tratamiento existe antes de eliminarlo
+            var existingTratamiento = Qry.First<Tratamiento>(t => t.UidTratamiento == tratamiento.UidTratamiento);
+            if (existingTratamiento != null)
+            {
+                var medicamentoAsociado = Qry.First<Medicamento>(m => m.UidMedicamento == tratamiento.UidMedicamento);
+                Qry.PerformTransaction(db =>
+                {
+                    Qry.Delete(existingTratamiento, db);
+                    if (medicamentoAsociado != null) Qry.Delete(medicamentoAsociado, db);
+                });
+                await BaseRef.ShowSuccess("El tratamiento ha sido eliminado correctamente.");
+                await OnCreated(); // Actualizar la lista de tratamientos después de la eliminación
+            }
+            else
+            {
+                await BaseRef.ShowError("El tratamiento ya ha sido eliminado por otra operación.");
+            }
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await BaseRef.ShowError("No se pudo eliminar el tratamiento debido a cambios concurrentes.");
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError($"No ha sido posible eliminar el tratamiento: {ex}");
+        }
+    }
+
+
+    private async Task EditarTratamiento(Tratamiento tratamiento)
+    {
+        try
+        {
+            // Verificar que el tratamiento existe antes de editarlo
+            var existingTratamiento = Qry.First<Tratamiento>(t => t.UidTratamiento == tratamiento.UidTratamiento);
+            if (existingTratamiento != null)
+            {
+                // Añadir aquí la lógica para editar el tratamiento abriendo el formulario de
+                TratamientoEdit = tratamiento;
+                await InvokeAsync(StateHasChanged);
+                await FormularioRef.Clic();
+            }
+            else
+            {
+                await BaseRef.ShowError("No se encuentra el tratamiento seleccionado.");
+            }
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await BaseRef.ShowError("No se pudo editar el tratamiento debido a cambios concurrentes.");
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError($"No ha sido posible editar el tratamiento: {ex}");
+        }
+    }
+
+    private async Task VerDetalles(Tratamiento tratamiento)
+    {
+        try
+        {
+            // Verificar que el tratamiento existe antes de mostrar los detalles
+            var existingTratamiento = Qry.First<Tratamiento>(t => t.UidTratamiento == tratamiento.UidTratamiento);
+            if (existingTratamiento != null)
+            {
+                // Añadir aquí la lógica para mostrar los detalles del tratamiento
+            }
+            else
+            {
+                await BaseRef.ShowError("No se encuentra el tratamiento seleccionado.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError($"No ha sido posible mostrar los detalles del tratamiento: {ex}");
+        }
+    }
+}

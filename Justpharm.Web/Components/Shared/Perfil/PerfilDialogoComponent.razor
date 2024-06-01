@@ -1,0 +1,143 @@
+﻿
+@using Justpharm.Web.Data
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Microsoft.AspNetCore.Identity
+@using Syncfusion.Blazor
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Notifications
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.SplitButtons
+
+<DialogoModal @ref="dialogModal" Title="Datos personales"  >
+    <EditForm Model="_paciente">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+             <div class="container">
+                <div class="row">
+                    @if (_paciente.UidPaciente == Guid.Empty)
+                    {
+                    }
+                    <div class="col">
+                        <div class="col">
+                            <SfNumericTextBox TValue="int?" @bind-Value="@_paciente.Edad" Min="18" Max="130" Readonly="false" FloatLabelType="FloatLabelType.Always" Placeholder="Edad"></SfNumericTextBox>
+                        </div>
+                        <div class="col">
+                            <SfNumericTextBox TValue="double?" @bind-Value="@_paciente.Peso" Min="10" Max="200" Readonly="false" FloatLabelType="FloatLabelType.Always" Placeholder="Peso"></SfNumericTextBox>
+                        </div>
+                        <div class="col">
+                            <SfNumericTextBox TValue="double?" Value="@_paciente.Altura" Readonly="false" FloatLabelType="FloatLabelType.Always" Placeholder="Altura"></SfNumericTextBox>
+                        </div>
+                        <div class="col">
+                            <div class="d-flex align-items-center">
+                            Sexo
+                            <SfSwitch @bind-Checked="Masculino" OnLabel="M" OffLabel="F"></SfSwitch>
+                            </div>
+                            <div class="d-flex align-items-center">
+                            Alergias
+                            <SfSwitch @bind-Checked="_paciente.Alergias" OnLabel="Si" OffLabel="No"></SfSwitch>
+                            </div>
+                        </div>
+                    </div>
+@*                     <div class="col">
+                        <div class="e-avatar e-avatar-xlarge e-avatar-circle">
+                            <img class="image" src="@(Masculino ? "02.png" : "01.png")" alt="Foto de perfil"  />
+                        </div>
+                    </div> *@
+                </div>
+            </div>
+    </EditForm>
+</DialogoModal>
+<BaseComponent @ref="BaseRef"></BaseComponent>
+@inject UserManager<ApplicationUser> userManager
+@inject DbQry db
+@code {
+    [Parameter] public ApplicationUser User { get; set; }
+    SfDialog? dialogRef;
+    SfSlider<int>? weightSliderRef;
+    private bool visible = false;
+    private Paciente _paciente;
+    DialogoModal dialogModal;
+    public PerfilDialogoComponent Component;
+    public bool Masculino { get; set; } = false;
+    public Justpharm.Web.Components.BaseComponent BaseRef;
+    private void CloseEditDialog()
+    {
+        visible = false;
+    }
+
+    public async Task Clic()
+    {
+        try
+        {
+
+            // Mostrar el dialogo
+            if (await dialogModal.Show())
+            {
+                if (_paciente.Edad < 18)
+                {
+                    await BaseRef.ShowWarning("Debes ser mayor de edad para registrarte");
+                    return;
+                }
+                await Guardar();
+            }
+            else
+            {
+                // Se ha pulsado cancelar
+            }
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (User != null)
+            {
+                var id = User.Id;
+                _paciente = db.First<Paciente>(p => p.UserId == id);
+            }
+            else
+            {
+                _paciente = new Paciente();
+
+            }
+
+            await Clic();
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+
+    private async Task Guardar()
+    {
+        try
+        {
+            if (User == null)
+            {
+                await BaseRef.ShowWarning("No se ha encontrado el usuario");
+                return;
+            }
+            await userManager.AddToRoleAsync(User, "Usuario");
+            _paciente.UserId = User.Id;
+            _paciente.SexoMasculino = Masculino;
+            db.UpdateOrInsert(_paciente);
+            await BaseRef.ShowSuccess("Datos guardados correctamente");
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex.Message);
+        }
+    }
+}

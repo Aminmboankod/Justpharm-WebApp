@@ -1,0 +1,164 @@
+﻿@using Justpharm.Web.Components.Account
+@using Justpharm.Web.Data
+@using Justpharm.Web.Hubs
+@using Justpharm.Web.Repository
+@using Justpharm.Web.Services
+@using Justpharm.Web.Services.Notification
+@using Microsoft.AspNetCore.Identity
+@using Syncfusion.Blazor.Buttons
+@using Justpharm.Web.Models
+@using System.Security.Claims
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.Net
+@using Syncfusion.Blazor.Lists
+@using Syncfusion.Blazor.Popups
+<AuthorizeView>
+    <Authorized>
+        <div class="d-flex align-items-center">
+            <SfButton id="btnNotify" CssClass="e-danger d-inline-flex align-items-center" IconCss="e-icons e-large bi bi-envelope" IconPosition="IconPosition.Right">@notificacionesSinLeer</SfButton>
+            <SfButton id="btnCuidadoNotify" CssClass="e-warning d-inline-flex align-items-center" IconCss="e-icons e-large bi bi-bell" IconPosition="IconPosition.Right" @onclick="MostrarCuidadosNoLeidos">@cuidadosNoLeidos</SfButton>
+            <div class="appbar-subtitle" style="font-weight: 700; font-size: 1.01rem; margin: 4px;">
+                <a class="nav-link d-inline-block" style="text-decoration: none;  color: white" href="Account/Manage">
+                    <span> @context.User.Identity?.Name.Split("@")[0]</span>
+                </a>
+            </div>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+<SfDialog @ref="cuidadosDialog" IsModal="true" Width="500px" ShowCloseIcon="true" Header="Cuidados No Leídos">
+    <SfListView  DataSource="@cuidados" >
+        <ListViewEvents TValue="Cuidado" Clicked="@((args) => MarcarComoLeido(args.ItemData))"  />
+        <ListViewTemplates TValue="Cuidado" >
+            <Template>
+                <div>
+                    <p><strong>Fecha:</strong> @context.FechaCuidado.ToString("dd/MM/yyyy HH:mm")</p>
+                    <p><strong>Título:</strong> @context.Titulo</p>
+                    <p><strong>Descripción:</strong> @context.Descripción</p>
+                </div>
+            </Template>
+        </ListViewTemplates>
+    </SfListView>
+</SfDialog>
+
+@inject IJSRuntime jsRuntime
+@implements IDisposable
+@inject NavigationManager navMan
+@inject IConfiguration Configuration
+@inject INotificationService NotificationService
+@inject ICuidadoService CuidadoService
+
+@code {
+    private string? currentUrl;
+    private int notificacionesCount = 34;
+    private HubConnection hubConnection;
+    private int notificacionesSinLeer = 1;
+    private int cuidadosNoLeidos = 0;
+    private List<Notificacion> notificaciones { get; set; } = new();
+    private List<Cuidado> cuidados { get; set; } = new();
+    private SfDialog cuidadosDialog;
+
+    [Inject] IHttpContextAccessor HttpContextAccessor { get; set; }
+    [Inject] CookiesProvider CookiesProvider { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Obtener cuidados no leídos
+            cuidados = await CuidadoService.GetCuidadosNoLeidosAsync();
+            cuidadosNoLeidos = cuidados.Count;
+            currentUrl = navMan.ToBaseRelativePath(navMan.Uri);
+            navMan.LocationChanged += OnLocationChanged;
+
+            var HttpContext = HttpContextAccessor.HttpContext;
+            var container = new CookieContainer();
+            var cookie = new Cookie()
+            {
+                Name = ".AspNetCore.Identity.Application",
+                Domain = HttpContext.Request.Host.Host,
+                Value = CookiesProvider.Cookie
+            };
+
+            // crear una conexión al hub
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(navMan.ToAbsoluteUri(NotificationHub.NotificationUri), (options =>
+                {
+                    // y en las opciones pasarle las cookies
+                    options.HttpMessageHandlerFactory = (msg) =>
+                    {
+                        if (Configuration.GetValue<bool>("DisableSSLCheck") && msg is HttpClientHandler clientHandler)
+                        {
+                            // bypass SSL certificate
+                            clientHandler.ServerCertificateCustomValidationCallback +=
+                                (sender, certificate, chain, sslPolicyErrors) => { return true; };
+                        }
+
+                        return msg;
+                    };
+                }))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.Closed += async (exception) =>
+            {
+                if (exception != null) Console.WriteLine(exception.Message);
+            };
+
+            // registrar los eventos del Hub
+            hubConnection.On<Notificacion>("ReceiveNotification", NuevaNotificacion);
+
+            // iniciar el Hub
+            await hubConnection.StartAsync();
+
+        }
+        catch (HttpRequestException ex)
+        {
+            // Manejar el error de solicitud HTTP
+            Console.WriteLine($"Error en la solicitud HTTP al iniciar el Hub SignalR: {ex.Message}");
+        }
+    }
+
+    private Notification _ultimaNotification;
+
+    private async Task<object> NuevaNotificacion(Notificacion notificacion)
+    {
+        notificacionesSinLeer += 1;
+        notificaciones.Insert(0, notificacion); // al principio de la lista
+        await InvokeAsync(StateHasChanged);
+
+        _ultimaNotification = await NotificationService.CreateAsync("Nueva notificación", new NotificationOptions()
+        {
+            Tag = "thd_notificacion",
+            Icon = "logo.svg",
+            Body = $"¡Tienes {notificacionesSinLeer} notificaciones sin leer!",
+            Renotify = true
+        });
+        return null!;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUrl = navMan.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    private async Task MostrarCuidadosNoLeidos()
+    {
+        await cuidadosDialog.ShowAsync();
+    }
+
+    private async Task MarcarComoLeido(Cuidado cuidado)
+    {
+        cuidado.Leido = true;
+        await CuidadoService.MarcarComoLeidoAsync(cuidado);
+        cuidados.Remove(cuidado);
+        cuidadosNoLeidos = cuidados.Count;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        navMan.LocationChanged -= OnLocationChanged;
+    }
+}

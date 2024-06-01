@@ -1,0 +1,142 @@
+﻿
+@using Justpharm.Web.Components.Shared.Perfil
+@using Justpharm.Web.Data
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Microsoft.AspNetCore.Identity
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Inputs
+@using System.Security.Claims
+@rendermode InteractiveServer
+@inject NavigationManager nav
+<BaseComponent @ref="BaseRef"></BaseComponent>
+<div class="container">
+    <div class="row">
+        <EditForm Model="_paciente">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <div class="card">
+                    <div class="card-body">
+                        <h3 class="card-title">Datos Personales</h3>
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <div class="e-avatar e-avatar-circle">
+                                    <img src="@(Masculino ? "02.png" : "01.png")" alt="Foto de perfil" />
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="form-group">
+                                    <SfNumericTextBox Width="50%" TValue="int?" @bind-Value="@_paciente.Edad" Readonly="false"  FloatLabelType="FloatLabelType.Always" Placeholder="Edad"></SfNumericTextBox>
+                                </div>
+                                <div class="form-group">
+                                    <SfNumericTextBox Width="50%" TValue="double?" @bind-Value="@_paciente.Peso" Readonly="false" FloatLabelType="FloatLabelType.Always" Placeholder="Peso"></SfNumericTextBox>
+                                </div>
+                                <div class="form-group">
+                                    <SfNumericTextBox Width="50%" TValue="double?" Value="@_paciente.Altura" Readonly="false" FloatLabelType="FloatLabelType.Always" Placeholder="Altura"></SfNumericTextBox>
+                                </div>
+                                <div class="form-group">
+                                Sexo
+                                    <SfSwitch @bind-Checked="Masculino" OnLabel="M" OffLabel="F"></SfSwitch>
+                                </div>
+                                <div class="form-group">
+                                Alergias
+                                    <SfSwitch @bind-Checked="_paciente.Alergias" OnLabel="Si" OffLabel="No"></SfSwitch>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="separator"></div>
+                        <div stlye="text-aling:right">
+                            <SfButton Content="Guardar" OnClick="@Guardar" CssClass="btn btn-primary" IconCss="e-icons e-save" IconPosition="IconPosition.Right"></SfButton>
+                        </div>
+                    </div>
+                </div>
+            
+        </EditForm>
+    </div>
+</div>
+
+
+@inject DbQry db
+@inject UserManager<ApplicationUser> userManager
+@code {
+    [Parameter] public ApplicationUser User { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; }
+    public string UserId { get; private set; }
+    public AuthenticationState AuthState { get; private set; }
+
+    private Paciente _paciente;
+    public BaseComponent BaseRef;
+    public bool Masculino { get; set; } = true;
+    public bool Femenino { get; set; } = false;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (!firstRender) return;
+            _paciente = new();
+            if (User == null)
+            {
+                AuthState = await AuthenticationState;
+                var id = AuthState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (id == null) return;
+                UserId = id;
+
+                User = await userManager.FindByIdAsync(UserId);
+            }
+            _paciente = db.First<Paciente>(p => p.UserId == User.Id);
+            if (_paciente == null)
+            {
+                _paciente = new Paciente
+                {
+                    UserId = User.Id,
+                };
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex.Message);
+        }
+    }
+    private void OnCheckedChanged(Microsoft.AspNetCore.Components.ChangeEventArgs args)
+    {
+        if (Masculino)
+        {
+            Masculino = false;
+            Femenino = true;
+        }
+        else
+        {
+            Femenino = false;
+            Masculino = true;
+        }
+    }
+
+    private async Task Guardar()
+    {
+        try
+        {
+            if (_paciente.Edad < 18)
+            {
+                await BaseRef.ShowWarning("Debes ser mayor de edad para registrarte");
+                return;
+            }
+            if (User == null)
+            {
+                await BaseRef.ShowWarning("No se ha encontrado el usuario");
+                nav.NavigateTo("/Account/Manage", true);
+            }
+            await userManager.AddToRoleAsync(User, "Usuario");
+            _paciente.SexoMasculino = Masculino;
+            db.UpdateOrInsert(_paciente);
+            await BaseRef.ShowSuccess("Datos guardados correctamente");
+            await InvokeAsync(StateHasChanged);
+            nav.NavigateTo("/Account/Manage", true);
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex.Message);
+        }
+    }
+}
+ 

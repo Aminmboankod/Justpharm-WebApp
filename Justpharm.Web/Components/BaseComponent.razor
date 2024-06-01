@@ -1,0 +1,123 @@
+﻿@using Justpharm.Web.Components.Layout
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.Notifications
+@using Syncfusion.Blazor.Spinner
+@using log4net
+
+
+@*
+Este componente es la base de todos los componentes de la aplicación.
+Sirve para mostrar el spinner de carga y para mostrar los errores.
+
+Para usarlo, se debe heredar de él y sobreescribir el método LoadData.
+Haciendo uso de "@inherits BaseComponent".
+*@
+
+<SfSpinner @ref="Spinner" Label="cargando..." Type="SpinnerType.Bootstrap5" CssClass="e-spin-overlay" ZIndex="9999" /> 
+<SfToast @ref="Toast" Timeout="5000" ShowCloseButton="true">
+    <ToastPosition X="center" Y="top" />
+</SfToast>
+
+ 
+@inject ILog Log
+@code {
+
+
+
+    SfSidebar sidebarObj;
+
+    public SfToast Toast { get; private set; }
+    public SfSpinner Spinner { get; private set; }
+
+    private string _title = string.Empty;
+    private string CurrentPath = "";
+
+
+    public async Task ShowError(Exception ex)
+    {
+        try
+        {
+            Log.Error(ex);
+            Toast.Title = $"(Error: {ex.Source}";
+            Toast.Content = ex.Message;
+            Toast.CssClass = "e-toast-danger";
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(100);
+            await Toast.ShowAsync();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+    }
+
+    public async Task ShowError(string message)
+    {
+        try
+        {
+            //Log.Error($"({UserId}) Toast error: {message}");
+            Toast.Title = "Error";
+            Toast.Content = message;
+            Toast.CssClass = "e-toast-danger";
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(100);
+            await Toast.ShowAsync();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+    }
+
+    public async Task ShowSuccess(string message)
+    {
+        try
+        {
+            Toast.Title = "Éxito";
+            Toast.Content = message;
+            Toast.CssClass = "e-toast-success";
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(100);
+            await Toast.ShowAsync();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+    }
+
+    public async Task ShowInfo(string message)
+    {
+        try
+        {
+            Toast.Title = "Info";
+            Toast.Content = message;
+            Toast.CssClass = "e-toast-info";
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(100);
+            await Toast.ShowAsync();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+    }
+
+    public async Task ShowWarning(string message)
+    {
+        try
+        {
+            Log.Warn($"(Toast warning: {message}");
+            Toast.Title = "Atención";
+            Toast.Content = message;
+            Toast.CssClass = "e-toast-warning";
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(100);
+            await Toast.ShowAsync();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+    }
+}

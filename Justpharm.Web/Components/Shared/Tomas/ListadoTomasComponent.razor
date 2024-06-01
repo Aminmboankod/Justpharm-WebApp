@@ -1,0 +1,454 @@
+﻿@using Justpharm.Library.Models.Medical
+@using Justpharm.Web.Components.Shared.Farmacos
+@using Justpharm.Web.Components.Shared.Tratamientos
+@using Justpharm.Web.Data
+@using Justpharm.Web.Data.Appointments
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Justpharm.Web.Services
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.EntityFrameworkCore
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Calendars
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.Schedule
+@using System.Security.Claims
+
+<div class="container">
+    <div class="row" style="margin-bottom:20px; margin-top:10px">
+        <div class="col">
+            <SfToolbar CssClass="rounded-corner"  Height="70px">
+                <ToolbarItems>
+                    <ToolbarItem Width="500px" Align="ItemAlign.Left">
+                        <Template  >
+                            <SfDropDownList TValue="Guid" Width="550px"  Placeholder="Seleccione un paciente:"  FloatLabelType="FloatLabelType.Always"  TItem="Paciente" Enabled="true" DataSource="@MisPacientes" AllowFiltering="true" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains" @bind-Value="@PacienteSeleccionado">
+                                <DropDownListFieldSettings Text="@nameof(Paciente.Nombre)" Value="@nameof(Paciente.UidPaciente)"></DropDownListFieldSettings>
+                                <DropDownListEvents TItem="Paciente" TValue="Guid" ValueChange="ActionBeginDropDown"></DropDownListEvents>
+                                <DropDownListTemplates TItem="Paciente">
+                                    <ItemTemplate>
+                                        <span style="font-size:15px; padding-left:18px"><span class='name'>@((context as Paciente).Nombre) @((context as Paciente).Apellidos)</span><span class='country'>@((context as Paciente).DNI)</span></span>
+                                    </ItemTemplate>
+                                    <ValueTemplate>
+                                        <span style="font-size:15px; padding-left:18px; padding-top:10px">@((context as Paciente).Nombre) @((context as Paciente).Apellidos) @((context as Paciente).DNI)</span>
+                                    </ValueTemplate>
+                                </DropDownListTemplates>
+                            </SfDropDownList>
+                        </Template>
+                    </ToolbarItem>
+                    <ToolbarItem Width="500px" Align="ItemAlign.Right" >
+                        <Template>
+                            <SfDateRangePicker TValue="DateTime?" Width="550px" StartDate="@StartValue" EndDate="@EndValue" Format="dd/MM/yyyy" Placeholder="Filtre en un rango de fechas:" FloatLabelType="FloatLabelType.Always">
+                                <DateRangePickerEvents TValue="DateTime?" ValueChange="@ActionBeginDataRange"></DateRangePickerEvents>
+                            </SfDateRangePicker>
+                        </Template>
+                    </ToolbarItem>
+                </ToolbarItems>
+            </SfToolbar>
+
+        </div>
+    </div>
+    <div class="col-12 rounded-corner" style="background-color:white;">
+        <SfGrid @ref="GridTomas" DataSource="@MisTomas" Height="850px"
+            AllowResizing="true"
+            AllowReordering="false"
+            AllowGrouping="true"
+            ShowColumnMenu="false"
+            AllowPaging="true"
+            AllowSorting="true"
+            AllowFiltering="true"
+            AllowSelection="true"
+            Toolbar="@(new string[] {"Edit", "Print", "Search"})"
+            ClipMode="ClipMode.EllipsisWithTooltip">
+            <GridGroupSettings Columns="@GroupedColumns"></GridGroupSettings>
+            <GridPageSettings PageSize="11"></GridPageSettings>
+            <GridEvents OnActionBegin="@OnActionBegin" OnCellEdit="@OnCellEdit" OnActionComplete="@OnActionComplete" OnToolbarClick="@OnToolbarClick" CommandClicked="OnCommandClicked" QueryCellInfo="QueryCellInfoHandler" TValue="Toma"></GridEvents>
+            <GridSearchSettings IgnoreCase="true" IgnoreAccent="true"></GridSearchSettings>
+            <GridEditSettings AllowAdding="false" AllowDeleting="false" AllowEditing="true"  Mode="EditMode.Batch"></GridEditSettings>
+            <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu" IgnoreAccent="true" EnableCaseSensitivity="false"></GridFilterSettings>
+            <GridColumns>
+                <GridColumn AutoFit="true" AllowEditing="false" Field="@nameof(Toma.StartTime)" HeaderText="Fecha" HeaderTextAlign="TextAlign.Center" TextAlign="TextAlign.Center" Format="d"></GridColumn>
+                <GridColumn AutoFit="true" AllowEditing="false" HeaderText="Hora" HeaderTextAlign="TextAlign.Center" TextAlign="TextAlign.Center" Format="HH:mm">
+                    <Template>
+                        <strong style="font-size:20px"><i class="bi bi-capsule"></i>  @((context as Toma).StartTime.ToString("HH:mm"))h</strong>
+                    </Template>
+                </GridColumn>
+                <GridColumn AutoFit="true" AllowEditing="false" Field="@nameof(Toma.Titulo)" HeaderText="Fármaco" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left">
+                    <Template>
+                        @{
+                            var ctx = (context as Toma);
+                            var medicamento = MedicamentosAll.Where(t => t.UidMedicamento == ctx.UidMedicamento).FirstOrDefault();
+
+                            @if (medicamento != null)
+                            {
+                               <img src="@medicamento.Imagen" width="110px" alt="@medicamento.Nombre" />
+                            }
+                        }
+                    </Template>
+                </GridColumn>
+                <GridColumn AutoFit="false" AllowEditing="false" Field="@nameof(Toma.Titulo)" HeaderText="Tratamiento" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left">
+                    <Template>
+                        @{
+                            var ctx = (context as Toma);
+                            var medicamento = MedicamentosAll.Where(t => t.UidMedicamento == ctx.UidMedicamento).FirstOrDefault();
+                            <strong>@ctx.Titulo</strong>
+                            @if (medicamento != null)
+                            {
+                            <span class="container">
+                            @*
+                                <div class="image">
+                                    <img src="@medicamento.Imagen" width="90px" alt="@medicamento.Nombre" />
+                                </div>
+                              *@
+                                <div class="text">
+                                    <strong>@medicamento.Nombre</strong>
+                                </div>
+                            </span>
+                            }
+                        }
+                    </Template>
+                </GridColumn>
+                <GridColumn AutoFit="true" AllowEditing="false" Field="@nameof(Toma.UidPaciente)" HeaderText="Paciente" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left">
+                    <Template>
+                        @{
+                            var paciente = (context as Toma).UidPaciente;
+                            var p = MisPacientes.FirstOrDefault(t => t.UidPaciente == paciente);
+                        }
+                        <strong style="font-size:15px">@(p.Nombre) @(p.Apellidos)</strong>
+                    </Template>
+                </GridColumn>
+                <GridColumn AutoFit="true" AllowEditing="false" Field="@nameof(Toma.Mejora)" HeaderText="Mejora" HeaderTextAlign="TextAlign.Center" TextAlign="TextAlign.Center" Visible="false">
+                    <Template>
+                        @{
+                            var ctx = (context as Toma).Mejora;
+
+                            <SfRating Value=@ctx >
+                                <TooltipTemplate Context="csq">
+                                    <span>@csq</span>
+                                </TooltipTemplate>    
+                            </SfRating>
+                      
+                        }
+                    </Template>
+                </GridColumn>
+                <GridColumn AutoFit="true" AllowEditing="false" Field="@nameof(Toma.Estado)" HeaderText="Estado" HeaderTextAlign="TextAlign.Center" TextAlign="TextAlign.Center" Visible="false">
+                    <Template>
+                        @{
+                            var ctx = (context as Toma).Estado;
+                        
+                            <SfRating Value=@ctx EnableSingleSelection=true EnableAnimation=true>
+
+                                <EmptyTemplate Context="css">
+                                    @{
+                                        @if (css.Index == 0)
+                                        {
+                                            <span class='angry emoji'>😡</span>
+                                        }
+                                        else if (css.Index == 1)
+                                        {
+                                            <span class='disagree emoji'>🙁</span>
+                                        }
+                                        else if (css.Index == 2)
+                                        {
+                                            <span class='neutral emoji'>😐</span>
+                                        }
+                                        else if (css.Index == 3)
+                                        {
+                                            <span class='agree emoji'>🙂</span>
+                                        }
+                                        else
+                                        {
+                                            <span class='happy emoji'>😀</span>
+                                        }
+                                    }
+                                </EmptyTemplate>
+                            </SfRating>
+                            }
+                    </Template>
+                </GridColumn>
+                <GridColumn AutoFit="true" Field="@nameof(Toma.Ingerido)" HeaderText="Finalizada" EditType="EditType.BooleanEdit" HeaderTextAlign="TextAlign.Center" TextAlign="TextAlign.Center">
+                    <Template>
+                        @{
+                            var ctx = (context as Toma).Ingerido;
+                           <span style="font-size:40px"> <SfCheckBox CssClass="checkbox-grande" @bind-Checked="@ctx" ></SfCheckBox> </span>
+                        }
+                    </Template>
+                </GridColumn>
+            </GridColumns>
+        </SfGrid>
+    </div>  
+</div>
+<FormTomasFeedbackComponent @ref="FormTomasFbRef" Toma="@TomaSeleccionada" ></FormTomasFeedbackComponent> 
+<BaseComponent @ref="BaseRef"></BaseComponent>
+@inject DbQry DbQry
+@code {
+
+    #region Variables
+    [Parameter] public ApplicationUser User { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; }
+    private List<AppointmentData> Appointments = new();
+    SfGrid<Toma> GridTomas;
+    private Tratamiento TratamientoEdit;
+    private string UsuarioId;
+    public BaseComponent BaseRef;
+    FormTomasFeedbackComponent FormTomasFbRef;
+    private List<Toma> MisTomas = new();
+    public List<Paciente> MisPacientes = new();
+    public PerfilUsuario Perfil = new();
+    public Guid PacienteSeleccionado;
+
+    public Toma TomaSeleccionada = new();
+    public Medicamento _Medicamento = new();
+    public string[] GroupedColumns = new string[] { "StartTime" };
+    private DateTime? StartValue = DateTime.Now.Date;
+    private DateTime? EndValue = DateTime.Now.Date.AddDays(1);
+    #endregion
+    private List<Medicamento> MedicamentosAll = new();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        Perfil = DbQry.First<PerfilUsuario>(t => t.IdAspNetUser == User.Id);
+        MisPacientes = DbQry.All<Paciente>(t => t.UidUsuarioGestor == Perfil!.UidPerfil).ToList();
+        MisPacientes.Insert(0, new Paciente { UidPaciente = Guid.Empty, Nombre = "Todos" });
+        PacienteSeleccionado = Guid.Empty;
+
+        var UidMisPacientes = MisPacientes.Select(t => t.UidPaciente).ToList();
+        MisTomas = DbQry.All<Toma>(t => t.StartTime.Date >= StartValue.Value.Date && t.StartTime.Date <= EndValue.Value.Date && UidMisPacientes.Contains(t.UidPaciente.Value)).OrderBy(c => c.StartTime).ToList();
+        MedicamentosAll = DbQry.All<Medicamento>().ToList();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var AuthState = await AuthenticationState;
+            var id = AuthState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (id == null) return;
+            var miUsuario = id;
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+
+    }
+
+    public async Task OnActionBegin(Syncfusion.Blazor.Grids.ActionEventArgs<Toma> args)
+    {
+        try
+        {
+            if (args.RequestType == Syncfusion.Blazor.Grids.Action.Save && args.Action == "Edit")
+            {
+            }
+            if (args.RequestType.Equals(Syncfusion.Blazor.Grids.Action.BeginEdit))
+            {
+                args.Cancel = true;
+
+            }
+            if (args.RequestType.Equals(Syncfusion.Blazor.Grids.Action.Delete))
+            {
+                args.Cancel = true;
+
+            }
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError("Ha ocurrido algún error, pruebe a recargar la página por favor");
+        }
+    }
+
+    public async Task OnActionComplete(Syncfusion.Blazor.Grids.ActionEventArgs<Toma> args)
+    {
+        if (args.RequestType == Syncfusion.Blazor.Grids.Action.Save && args.Action == "Edit")
+        {
+            PacienteSeleccionado = Guid.Empty;
+
+            await GridTomas.Refresh();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+
+    private async Task OnToolbarClick(Syncfusion.Blazor.Navigations.ClickEventArgs args)
+    {
+        try
+        {
+            if (args.Item.Text.Equals("Editar"))
+            {
+                var tomaSeleccionada = GridTomas.SelectedRecords.FirstOrDefault();
+                if (tomaSeleccionada == null) await BaseRef.ShowWarning("Debe seleccionar una toma para editar");
+                else if (!tomaSeleccionada.Ingerido.GetValueOrDefault()) await BaseRef.ShowWarning("Debe haber marcado como finalizada la toma antes de complementar la información");
+                else
+                {
+                    TomaSeleccionada = tomaSeleccionada;
+                    await FormTomasFbRef.Clic();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+    }
+
+    public async void OnCommandClicked(CommandClickEventArgs<Toma> args)
+    {
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Edit))
+        {
+
+        }
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Delete))
+        {
+
+        }
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Save))
+        {
+
+        }
+    }
+
+    private async Task ActionBeginDataRange(RangePickerEventArgs<DateTime?> args)
+    {
+        StartValue = args.StartDate;
+        EndValue = args.EndDate;
+        await ActionBeginDropDown();
+    }
+
+
+    public async Task OnCellEdit(CellEditArgs<Toma> arg)
+    {
+        if (arg.ColumnName == "Ingerido")
+        {
+            arg.Cancel = true;
+            arg.Data.Ingerido = arg.Data.Ingerido.Value == true ? false : true;
+            DbQry.Update<Toma>(arg.Data);
+            if (arg.Data.Ingerido.GetValueOrDefault())
+            {
+                TomaSeleccionada = arg.Data;
+                await FormTomasFbRef.Clic();
+            }
+            await ActionBeginDropDown();
+        }
+       
+    }
+
+
+    private async Task ActionBeginDropDown()
+    {
+        if (PacienteSeleccionado == Guid.Empty)
+        {
+            var UidMisPacientes = MisPacientes.Select(t => t.UidPaciente).ToList();
+            MisTomas = DbQry.All<Toma>(t => t.StartTime.Date >= StartValue.Value.Date && t.StartTime.Date <= EndValue.Value.Date && UidMisPacientes.Contains(t.UidPaciente.Value)).OrderBy(c => c.StartTime).ToList();
+        }
+        else MisTomas = DbQry.All<Toma>(t => t.UidPaciente == PacienteSeleccionado && t.StartTime >= StartValue && t.StartTime <= EndValue ).OrderBy(c => c.StartTime).ToList();
+        await InvokeAsync(StateHasChanged);
+        await GridTomas.Refresh();
+    }
+
+    private async Task OnCreated()
+    {
+        Perfil = DbQry.First<PerfilUsuario>(t => t.IdAspNetUser == User.Id);
+        MisPacientes = DbQry.All<Paciente>(t => t.UidUsuarioGestor == Perfil!.UidPerfil).ToList();
+        MisPacientes.Insert(0, new Paciente { UidPaciente = Guid.Empty, Nombre = "Todos" });
+        PacienteSeleccionado = Guid.Empty;
+        var UidMisPacientes = MisPacientes.Select(t => t.UidPaciente).ToList();
+        MisTomas = DbQry.All<Toma>(t => t.StartTime.Date >= StartValue.Value.Date && t.StartTime.Date <= EndValue.Value.Date && UidMisPacientes.Contains(t.UidPaciente.Value)).OrderBy(c => c.StartTime).ToList();
+        
+        await GridTomas.Refresh();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task OnPopupOpen(PopupOpenEventArgs<AppointmentData> args)
+    {
+        args.Cancel = true;
+    }
+
+
+    public void QueryCellInfoHandler(QueryCellInfoEventArgs<Toma> args)
+    {
+        if (args.Data.Ingerido.GetValueOrDefault() == null || args.Data.Ingerido.GetValueOrDefault() == false )
+        {
+            args.Cell.AddClass(new string[] { "noingerido" });
+        }
+        else
+        {
+            args.Cell.AddClass(new string[] { "ingerido" });
+        }
+    }
+
+}
+
+<style>
+    .rounded-corner {
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+        border-radius: 25px;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .rounded-corner:hover {
+        box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Estilo para el input tipo buscador similar al de Google */
+    .buscador {
+        padding: 10px 30px 10px 10px !important; /* Ajusta el padding según necesidad */
+        border: 1px solid #ccc !important; /* Borde del input */
+        border-radius: 20px !important; /* Bordes redondeados */
+        box-sizing: border-box !important; /* Incluye el padding y el borde en el ancho total */
+        outline: none !important; /* Quita el contorno al hacer clic en el input */
+    }
+
+    .e-ddl.e-input-group .e-input-value, .e-ddl.e-input-group .e-input-value:focus {
+        font-family: inherit;
+        font-size: 14px;
+        height: auto;
+        margin: 0;
+        outline: none;
+        width: 100%;
+        padding-top: 7px;
+    }
+
+
+    .country {
+        right: 15px;
+        position: absolute;
+    }
+
+    .e-grid .e-rowcell:first-child, .e-grid .e-summarycell:first-child {
+        padding-left: 8px;
+       
+    }
+
+    .checkbox-grande {
+        height: 100px;
+    }
+
+    .e-grid .e-gridcontent .e-rowcell.ingerido {
+        background-color: #A0F67C !important;
+        border-color: #d6e9c6;
+        color: #206121 !important;
+    }
+
+    .e-grid .e-gridcontent .e-rowcell.noingerido {
+        background-color: #f2f2f2;
+        border-color: #cccccc; 
+        color: #555555;
+    }
+
+    .e-grid .e-row:hover .e-rowcell.ingerido {
+        background-color: #A0F67C !important;
+        border-color: #d6e9c6;
+        color: black !important;
+    }
+
+    .e-grid .e-row:hover .e-rowcell.noingerido {
+        background-color: #f2f2f2;
+        border-color: #cccccc;
+        color: black;
+    }
+</style>

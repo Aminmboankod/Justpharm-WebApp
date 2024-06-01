@@ -1,0 +1,468 @@
+﻿@using Blazored.FluentValidation
+@using FluentValidation.Results
+@using Justpharm.Web.Components.Shared.Cuidados
+@using Justpharm.Web.Components.Shared.Farmacos
+@using Justpharm.Web.Components.Shared.Tratamientos
+@using Justpharm.Web.Data
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Inputs
+
+
+<div class="col-12 rounded-corner" style="background-color:white">
+@* <h3 style="text-align:center;padding:5px">Mis pacientes</h3> *@
+<SfGrid @ref="GridPacientesRef" DataSource="ListadoPacientes" Height="450px"
+    AllowResizing="true"
+    AllowReordering="false"
+    AllowGrouping="false"
+    ShowColumnMenu="false"
+    AllowPaging="true"
+    AllowSorting="true"
+    AllowFiltering="true"
+    AllowSelection="true"
+    Toolbar="@(new string[] {"Print", "Search", "Add", "Crear Tratamiento", "Cuidado"})"
+    ClipMode="ClipMode.EllipsisWithTooltip">
+        <GridEvents OnActionBegin="@OnActionBegin" OnToolbarClick="OnToolbarClick" TValue="Paciente"></GridEvents>
+    <GridSearchSettings IgnoreCase="true" IgnoreAccent="true"></GridSearchSettings>
+    <GridEditSettings AllowAdding="true" AllowDeleting="true" AllowEditing="true" AllowEditOnDblClick="false" ShowDeleteConfirmDialog="true" ShowConfirmDialog="true" Mode="EditMode.Dialog">
+        <Template Context="Context">
+            @{
+
+                var context = (Context as Paciente);
+                if (context.User == null && context.UidUsuarioGestor == null)
+                {
+                    context = NuevoPaciente;
+                }
+                
+                <div class="sf-edit-form-container" style="width:650px">
+                    <div class="row">
+                        <div class="col">
+                            <div class="sf-edit-row" style="padding:25px">
+                                <div class="sf-edit-field">
+                                    <SfTextBox @bind-Value="context.Nombre" Placeholder="Nombre" FloatLabelType="FloatLabelType.Always" Enabled="true" />
+                                    <ValidationMessage For="@(() => context.Nombre)"></ValidationMessage>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="sf-edit-row" style="padding:25px;">
+                                <div class="sf-edit-field">
+                                    <SfTextBox @bind-Value="context.Apellidos" Placeholder="Apellido" FloatLabelType="FloatLabelType.Always" Enabled="true" />
+                                    <ValidationMessage For="@(() => context.Apellidos)"></ValidationMessage>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="sf-edit-row" style="padding:25px; padding-top:0px">
+                                <div class="sf-edit-field">
+                                    <SfTextBox @bind-Value="context.DNI" Placeholder="DNI" FloatLabelType="FloatLabelType.Always" Enabled="true" />
+                                    <ValidationMessage For="@(() => context.DNI)"></ValidationMessage>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="sf-edit-row" style="padding:25px; padding-top:0px">
+                                <div class="sf-edit-field">
+                                    <SfTextBox @bind-Value="context.Ubicacion" Placeholder="Ubicación" FloatLabelType="FloatLabelType.Always" Enabled="true" />
+                                    <ValidationMessage For="@(() => context.Ubicacion)"></ValidationMessage>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="sf-edit-row" style="padding:25px; padding-top:0px">
+                                <SfDropDownList TValue="Guid?" TItem="_MaestroDietas" Enabled="true" DataSource="Statics.ListadoDietas" FloatLabelType="FloatLabelType.Always" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains" @bind-Value="@context.UidMaestroDieta" Placeholder="Dieta">
+                                    <DropDownListFieldSettings Text="@nameof(_MaestroDietas.Titulo)" Value="@nameof(_MaestroDietas.UidMaestroDieta)"></DropDownListFieldSettings>
+                                    <DropDownListEvents TItem="_MaestroDietas" TValue="Guid?"></DropDownListEvents>
+                                </SfDropDownList>
+                            </div>
+                        </div>
+                            <div class="col">
+                                <div class="sf-edit-row" style="padding:25px; padding-top:0px">
+                                    <div class="sf-edit-field">
+                                        <SfNumericTextBox @bind-Value="context.Edad" Min="1" Max="130" Placeholder="Edad" FloatLabelType="FloatLabelType.Always" Enabled="true" Format="# 'Años'" />
+                                        <ValidationMessage For="@(() => context.Edad)"></ValidationMessage>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="sf-edit-row" style="padding:25px; padding-top:0px">
+                                        <SfNumericTextBox @bind-Value="context.Peso" Min="0" Max="250" Placeholder="Peso" FloatLabelType="FloatLabelType.Always" Enabled="true" Format="# 'Kg'" />
+                                        <ValidationMessage For="@(() => context.Peso)"></ValidationMessage>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="sf-edit-row" style="padding:25px; padding-top:0px">
+                                        <SfNumericTextBox @bind-Value="context.Altura" Min="0" Max="3" Placeholder="Altura" FloatLabelType="FloatLabelType.Always" Enabled="true" Format="#.## 'm'" Decimals="2" />
+                                        <ValidationMessage For="@(() => context.Altura)"></ValidationMessage>
+                                    </div>
+                                </div>
+                            </div>
+
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="sf-edit-field" style="padding:25px; padding-top:0px">
+                                <Syncfusion.Blazor.Buttons.SfSwitch @bind-Checked="context.SexoMasculino" OnLabel="Hombre" OffLabel="Mujer" CssClass="switch-personalizado" />
+                                
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="sf-edit-field" style="padding:25px; padding-top:0px">
+                                <SfCheckBox @bind-Checked="context.Alergias" Label="Alergias" />
+                                <SfCheckBox @bind-Checked="context.EnfermedadCronica" Label="Enferm. Crónica" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </Template>
+    </GridEditSettings>
+    <GridPageSettings PageSize="11"></GridPageSettings>
+    <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu" IgnoreAccent="true" EnableCaseSensitivity="false"></GridFilterSettings>
+    <GridColumns>
+        <GridColumn AutoFit="false" Field="@nameof(Paciente.Nombre)" HeaderText="Nombre" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }"></GridColumn>
+        <GridColumn AutoFit="false" Field="@nameof(Paciente.Apellidos)" HeaderText="Apellido" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }"></GridColumn>
+        <GridColumn AutoFit="false" Field="@nameof(Paciente.DNI)" HeaderText="DNI" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }"></GridColumn>
+        <GridColumn AutoFit="false" Field="@nameof(Paciente.Ubicacion)" HeaderText="Localización" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }"></GridColumn>
+        <GridColumn AutoFit="false" Field="@nameof(Paciente.SexoMasculino)" HeaderText="Sexo" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }">
+            <Template>
+                @{
+                    var ctx = (context as Paciente);
+                    if (ctx.SexoMasculino == true)
+                    {
+                            <span class="badge bg-success" style="width:92px"><i class="bi bi-person-standing"></i>Masculino</span>
+                    }
+                    else
+                    {
+                            <span class="badge bg-primary" style="width:92px"><i class="bi bi-person-standing-dress"></i>Femenino</span>
+                    }
+                }
+            </Template>
+        </GridColumn>
+        <GridColumn AutoFit="false" Field="@nameof(Paciente.Edad)" HeaderText="Edad" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }">
+            <Template>
+                <span>@((context as Paciente).Edad) años </span>
+            </Template>
+        </GridColumn>
+        <GridColumn AutoFit="false" Field="@nameof(Paciente.Peso)" HeaderText="Peso" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }">
+            <Template>
+                <span>@((context as Paciente).Peso) Kg </span>
+            </Template>
+        </GridColumn>
+        <GridColumn AutoFit="false" Field="@nameof(Paciente.Altura)" HeaderText="Altura" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }">
+            <Template>
+                <span>@((context as Paciente).Altura) cm </span>
+            </Template>
+        </GridColumn>
+        <GridColumn AutoFit="false" Field="@nameof(Paciente.EnfermedadCronica)" HeaderText="Enferm. Crónica" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }">
+            <Template>
+                @{
+                    var ctx = (context as Paciente);
+                    if (ctx.EnfermedadCronica == true)
+                    {
+                        <span class="badge bg-danger" style="width:30px">Sí</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success" style="width:30px">No</span>
+                    }
+                }
+            </Template>
+        </GridColumn>
+        <GridColumn AutoFit="false" Field="@nameof(Paciente.Alergias)" HeaderText="Alergias" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }">
+            <Template>
+                @{
+                    var ctx = (context as Paciente);
+                    if (ctx.Alergias == true)
+                    {
+                        <span class="badge bg-danger" style="width:30px">Sí</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success" style="width:30px">No</span>
+                    }
+                }
+            </Template>
+        </GridColumn>
+        <GridColumn AutoFit="false" Field="@nameof(Paciente.UidMaestroDieta)" HeaderText="Dieta" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }">
+            <Template>
+                    @{
+                        var ctx = (context as Paciente);
+                        @if (ctx.UidMaestroDieta != null)
+                        {
+                        var dieta = Statics.ListadoDietas.First(d => d.UidMaestroDieta == ctx.UidMaestroDieta);
+                            <span>@dieta.Titulo</span>
+                        }
+                        else
+                        {
+                            <span>Sin asignar</span>
+                        }
+                }
+            </Template>
+        </GridColumn>
+        <GridColumn AutoFit="true" HeaderText="Configuración" HeaderTextAlign="TextAlign.Right" TextAlign="TextAlign.Right">
+            <GridCommandColumns>
+                <GridCommandColumn Type="CommandButtonType.Edit" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-edit", CssClass = "e-flat e-success" })"></GridCommandColumn>
+                <GridCommandColumn Type="CommandButtonType.Delete" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-delete", CssClass = "e-flat e-danger" })"></GridCommandColumn>
+                <GridCommandColumn Type="CommandButtonType.Save" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-update", CssClass = "e-flat" })"></GridCommandColumn>
+                <GridCommandColumn Type="CommandButtonType.Cancel" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-cancel-icon", CssClass = "e-flat" })"></GridCommandColumn>
+            </GridCommandColumns>
+        </GridColumn>
+    </GridColumns>
+</SfGrid>
+</div>
+
+<BaseComponent @ref="BaseRef"></BaseComponent>
+<FormularioTratamComponent @ref="FTomasRef" MisPacientes="ListadoPacientes" PacienteSeleccionado="@PacienteSeleccionado" />
+<FormularioCuidadosComponent @ref="FormCuidadosRef" User="User" PacienteSeleccionado="paciente" CuidadoEdit="CuidadoEdit" ></FormularioCuidadosComponent>
+<style>
+    .switch-personalizado {
+        width: 90px;
+    }
+
+    
+    .rounded-corner {
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+        border-radius: 25px;
+        overflow: hidden;
+        width: 100%;
+    }
+
+        .rounded-corner:hover {
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
+        }
+
+    /* Estilo para el input tipo buscador similar al de Google */
+    .buscador {
+        padding: 10px 30px 10px 10px !important; /* Ajusta el padding según necesidad */
+        border: 1px solid #ccc !important; /* Borde del input */
+        border-radius: 20px !important; /* Bordes redondeados */
+        box-sizing: border-box !important; /* Incluye el padding y el borde en el ancho total */
+        outline: none !important; /* Quita el contorno al hacer clic en el input */
+    }
+
+    .e-ddl.e-input-group .e-input-value, .e-ddl.e-input-group .e-input-value:focus {
+        font-family: inherit;
+        font-size: 14px;
+        height: auto;
+        margin: 0;
+        outline: none;
+        width: 100%;
+        padding-top: 7px;
+    }
+    .cloud-slider {
+        display: block;
+        position: relative;
+    }
+
+</style>
+
+@inject DbQry db
+@code {
+    #region Variables
+    public FormularioTratamComponent? FTomasRef;
+    public FormularioCuidadosComponent? FormCuidadosRef;
+    BaseComponent? BaseRef;
+    SfGrid<Paciente>? GridPacientesRef;
+    DialogoTratamientoComponent? DialogoTratamiento;
+    FluentValidationValidator FValidationValidator = new FluentValidationValidator();
+    private PerfilUsuario? Perfil { get; set; }
+    [Parameter] public ApplicationUser? User { get; set; }
+    private List<Paciente> ListadoPacientes = new List<Paciente>();
+    private Paciente? NuevoPaciente;
+    public Guid PacienteSeleccionado;
+    public Paciente paciente = new();
+    public Cuidado CuidadoEdit = new();
+    #endregion
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+
+            if (!firstRender) return;
+
+            Perfil = db.First<PerfilUsuario>(t => t.IdAspNetUser == User.Id);
+            if (Perfil == null)
+            {
+                await BaseRef.ShowError("No se ha encontrado el perfil de usuario");
+                return;
+            }
+
+            await CargarPacientes();
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError($"No ha sido posible cargar los datos: {ex}");
+        }
+    }
+
+    private async Task<bool> Validate()
+    {
+        bool existe = db.Exist<Paciente>(t => t.DNI == NuevoPaciente.DNI);
+        if (existe)
+        {
+            await BaseRef.ShowError("El DNI ya existe en la base de datos");
+            return false;
+        }
+        var result = await FValidationValidator.ValidateAsync();
+        return !result;
+    }
+
+    private async Task<bool> EditValidate()
+    {
+        var result = await FValidationValidator.ValidateAsync();
+        return !result;
+    }
+
+    public async Task OnActionBegin(ActionEventArgs<Paciente> args)
+    {
+        try
+        {
+            if (args.RequestType == Syncfusion.Blazor.Grids.Action.Save && args.Action == "Add")
+            {
+                args.Cancel = true;
+
+                NuevoPaciente.UidUsuarioGestor = Perfil!.UidPerfil; // Asigno el paciente al Perfil que lo ha creado
+                NuevoPaciente.UidPaciente = Guid.NewGuid();
+                db.Insert<Paciente>(NuevoPaciente);
+                await CargarPacientes();
+
+            }
+            if (args.RequestType == Syncfusion.Blazor.Grids.Action.Save && args.Action == "Edit")
+            {
+                // if (await EditValidate())
+                // {
+                await EditarPaciente(args.Data);
+                await CargarPacientes();
+                // }
+                // else
+                // {
+                //     args.Cancel = true;
+                // }
+            }
+            if (args.RequestType.Equals(Syncfusion.Blazor.Grids.Action.BeginEdit))
+            {
+
+            }
+            if (args.RequestType.Equals(Syncfusion.Blazor.Grids.Action.Delete))
+            {
+                await EliminarPaciente(args.RowData);
+                await CargarPacientes();
+            }
+            if (args.RequestType.Equals(Syncfusion.Blazor.Grids.Action.Add))
+            {
+                NuevoPaciente = new Paciente
+                    {
+                        FechaNacimiento = DateTime.Now.AddYears(-30),
+                        SexoMasculino = true,
+                    };
+            }
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError("Ha ocurrido algún error, pruebe a recargar la página por favor");
+        }
+    }
+
+    private async Task OnToolbarClick(Syncfusion.Blazor.Navigations.ClickEventArgs args)
+    {
+        try
+        {
+
+            var pacienteSelected = GridPacientesRef!.SelectedRecords.FirstOrDefault();
+
+            if (args.Item.Text == "Crear Tratamiento")
+            {
+                if (pacienteSelected == null)
+                {
+                    await BaseRef!.ShowWarning("No se ha seleccionado ningún paciente");
+                    return;
+                }
+                PacienteSeleccionado = pacienteSelected.UidPaciente;
+                await FTomasRef!.Clic();
+            }
+            if (args.Item.Text == "Cuidado")
+            {
+                if (pacienteSelected == null)
+                {
+                    await BaseRef!.ShowWarning("No se ha seleccionado ningún paciente");
+                    return;
+                }
+                paciente = GridPacientesRef.SelectedRecords.FirstOrDefault()!;
+
+                await FormCuidadosRef!.Clic();
+            }
+        }
+        catch (Exception)
+        {
+            await BaseRef!.ShowWarning("Algo a ocurrido, por favor, vuelva a intentarlo");
+        }
+    }
+
+    public async Task OnCommandClicked(CommandClickEventArgs<Paciente> args)
+    {
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Edit))
+        {
+        }
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Delete))
+        {
+        }
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Save))
+        {
+            args.Cancel = true;
+            await CargarPacientes();
+        }
+    }
+
+    private async Task EditarPaciente(Paciente args)
+    {
+        try
+        {
+            db.Update<Paciente>(args);
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError($"No ha sido posible editar el tratamiento: {ex}");
+        }
+    }
+
+    private async Task EliminarPaciente(Paciente args)
+    {
+        try
+        {
+            var tratam = db.All<Tratamiento>(t => t.UidPaciente == args.UidPaciente).ToArray();
+            if (tratam.Length > 0) db.DeleteTratamientosConDependencias(tratam);
+            // var tomas = db.All<Tratamiento>(t => t.UidPaciente == args.UidPaciente).ToArray();
+            // if (tomas.Length > 0) db.DeleteRange(tomas);
+
+            db.Delete<Paciente>(args);
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError($"No ha sido posible eliminar el tratamiento: {ex}");
+        }
+    }
+
+    private async Task CargarPacientes()
+    {
+        try
+        {
+            ListadoPacientes = db.All<Paciente>(t => t.UidUsuarioGestor == Perfil!.UidPerfil).ToList();
+            await InvokeAsync(StateHasChanged);
+            await GridPacientesRef.Refresh();
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError($"No ha sido posible cargar los datos: {ex}");
+        }
+    }
+
+}
+

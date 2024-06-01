@@ -1,0 +1,152 @@
+﻿@page "/login"
+@attribute [AllowAnonymous]
+@using System.ComponentModel.DataAnnotations
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Justpharm.Web.Data
+@using Syncfusion.Blazor.Buttons
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject ILogger<Login> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Justpharm | Inicio de sesión</PageTitle>
+
+<div class="inner" style="text-align: center; width:400px">
+    <div class="row align-content-center">
+@*         <div class="navbar-brand">
+                <img src="logo.svg" width="150px" />
+        </div> *@
+        <div class="row-md-6">
+            <h1>Inicio de sesión</h1>
+            <section>
+                <StatusMessage Message="@errorMessage" />
+                <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+                    <DataAnnotationsValidator />
+                    <hr />
+                    <ValidationSummary class="text-danger" role="alert" />
+                    <div class="form-floating mb-3">
+                        <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                        <label for="email" class="form-label">Email</label>
+                        <ValidationMessage For="() => Input.Email" class="text-danger" />
+                    </div>
+                    <div class="form-floating mb-3">
+                        <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
+                        <label for="password" class="form-label">Contraseña</label>
+                        <ValidationMessage For="() => Input.Password" class="text-danger" />
+                    </div>
+                    <div class="checkbox mb-3">
+                        <label class="form-label">
+                            <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
+                            Mantener sesión abierta
+                        </label>
+                    </div>
+                    <div style="font-size:15px">
+                        <SfButton IsPrimary="true" IconCss="bi bi-box-arrow-in-right" type="submit" class="w-100 btn btn-lg btn-primary p-2" style="font-size:20px">Entrar</SfButton>
+                    </div>
+                    <div class="accordion-body">
+@*                         <p>
+                            <a href="Account/ForgotPassword">¿Ha olvidado la contraseña?</a>
+                        </p> *@
+                        <p>
+                            <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Registrar nuevo usuario</a>
+                        </p>
+                        <p>
+                            <a href="Account/ResendEmailConfirmation">Reenviar email de confirmación</a>
+                        </p>
+                    </div>
+                </EditForm>
+            </section>
+        </div>
+    </div>
+    @*     <div class="col-md-6 col-md-offset-2">
+        <section>
+            <h3>Use otro servicio para iniciar sesión.</h3>
+            <hr />
+            <ExternalLoginPicker />
+        </section>
+    </div> *@
+</div>
+
+@inject DbQry db
+@code {
+    private string? errorMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            // Clear the existing external cookie to ensure a clean login process
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+
+    public async Task LoginUser()
+    {
+        // This doesn't count login failures towards account lockout
+        // To enable password failures to trigger account lockout, set lockoutOnFailure: true
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        if (result.Succeeded)
+        {
+
+                Logger.LogInformation("Usuario logeado.");
+                RedirectManager.RedirectTo(ReturnUrl);
+            
+        }
+        else if (result.RequiresTwoFactor)
+        {
+            RedirectManager.RedirectTo(
+                "Account/LoginWith2fa",
+                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("Usuario bloqueado.");
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else
+        {
+            errorMessage = "Error: Los datos no son correctos.";
+        }
+    }
+
+    private async ValueTask<ApplicationUser?> ComprobarSiExistePerfil()
+    {
+        ApplicationUser? User = await SignInManager.UserManager.FindByEmailAsync(Input.Email);
+        if (User != null)
+        {
+            PerfilUsuario? Perfil = db.First<PerfilUsuario>(p => p.IdAspNetUser == User.Id);
+            if (Perfil == null) return null;
+            else return null;
+        }
+        return User;
+    }
+
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        [Display(Name = "¿Recordarme?")]
+        public bool RememberMe { get; set; }
+    }
+}

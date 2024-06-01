@@ -1,0 +1,205 @@
+﻿@using Justpharm.Web.Data
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Calendars
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Inputs
+@using System.Security.Claims
+
+<DialogoModal @ref="DialogRef" Title="Registrar cuidado" BtnDone="Guardar cuidado" Height="550px" >
+    <div class="container">
+        <div>
+            <div class="form-group inline-form-group">
+                <SfTextBox Placeholder="Cuidador" FloatLabelType="FloatLabelType.Always" Value="@Perfil.Nombre" Enabled="false"></SfTextBox>
+                <SfTextBox Placeholder="Paciente" FloatLabelType="FloatLabelType.Always" Value="@PacienteSeleccionado.Nombre" Enabled="false"></SfTextBox>
+            </div>
+            <div class="form-group inline-from-group">
+                <SfDropDownList @bind-Value="@_CuidadosSelected" TValue="Guid" Placeholder="Cuidado" FloatLabelType="FloatLabelType.Always" TItem="_MaestroCuidados" Enabled="true" DataSource="@Statics.ListadoCuidadosCategoria" AllowFiltering="false" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains">
+                    <DropDownListFieldSettings Text="@nameof(_MaestroCuidados.TituloCuidado)" Value="@nameof(_MaestroCuidados.UidMaestroCuidados)"></DropDownListFieldSettings>
+                    <DropDownListEvents TValue="Guid" TItem="_MaestroCuidados" OnValueSelect="CuidadosSelected"></DropDownListEvents>
+                </SfDropDownList>
+                <SfDropDownList TValue="Guid" Placeholder="Necesidad" FloatLabelType="FloatLabelType.Always" TItem="_MaestroNecesidades" Enabled="true" DataSource="@listadoMN" AllowFiltering="false" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains">
+                    <DropDownListFieldSettings Text="@nameof(_MaestroNecesidades.TituloNecesidad)" Value="@nameof(_MaestroNecesidades.UidNecesidades)"></DropDownListFieldSettings>
+                    <DropDownListEvents TValue="Guid" TItem="_MaestroNecesidades" OnValueSelect="NecesidadesSelected"></DropDownListEvents>
+                </SfDropDownList>
+            </div>
+            <div class="form-group">
+                <SfChip @ref="_chipsNecesidades" EnableDelete="true" Chips="@_listadoNecesidades"></SfChip>
+            </div>
+            <div class="form-group inline-form-group">
+                <SfNumericTextBox Placeholder="Fiebre" TValue="double?" @bind-Value="@CuidadoEdit!.Fiebre" FloatLabelType="FloatLabelType.Always" Format="0.00ºC"></SfNumericTextBox>
+                <SfNumericTextBox Placeholder="Tensión" TValue="double?" @bind-Value="@CuidadoEdit.Tension" FloatLabelType="FloatLabelType.Always" Format="0.00mmHg"></SfNumericTextBox>
+                <SfNumericTextBox Placeholder="Glucosa" TValue="double?" @bind-Value="@CuidadoEdit.Insulina" FloatLabelType="FloatLabelType.Always" Format="0.00mg/dL"></SfNumericTextBox>
+            </div>
+            <div class="form-group">
+                <SfTextBox Multiline="true" @bind-Value="@CuidadoEdit.Descripción" Placeholder="Observaciones" FloatLabelType="FloatLabelType.Always"></SfTextBox>
+            </div>
+        </div>
+    </div>
+</DialogoModal>
+
+<BaseComponent @ref="Globals"></BaseComponent>
+
+@inject DbQry DbQry
+@code {
+    private Guid _CuidadosSelected;
+    private Guid _NecesidadesSelected;
+    private List<_MaestroNecesidades> listadoMN = new List<_MaestroNecesidades>();
+    private List<ChipItem> _listadoNecesidades = new List<ChipItem>();
+    private SfChip? _chipsNecesidades;
+    private _MaestroNecesidades _MaestroNecesidades = new _MaestroNecesidades();
+    private int ListadoNecesidades = 0;
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+    private string? UsuarioId;
+    public PerfilUsuario Perfil = new();
+    [Parameter] public ApplicationUser? User { get; set; }
+    [Parameter] public Paciente? PacienteSeleccionado { get; set; }
+    [Parameter] public Cuidado? CuidadoEdit { get; set; }
+    [Parameter] public bool Editando { get; set; }
+    BaseComponent? Globals;
+    DialogoModal? DialogRef;
+    public EventHandler? RefreshData;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var AuthState = await AuthenticationState!;
+        var id = AuthState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (id == null) return;
+        UsuarioId = id;
+        Perfil = DbQry.First<PerfilUsuario>(t => t.IdAspNetUser == User!.Id)!;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void GetCategoriaCuidado(Guid cuidado)
+    {
+        ListadoNecesidades = Statics.ListadoCuidadosCategoria.First(c => c.UidMaestroCuidados == cuidado).Categoria;
+        listadoMN = Statics.ListadoNecesidades.Where(n => n.CategoriaCuidado == ListadoNecesidades).ToList();
+        InvokeAsync(StateHasChanged);
+    }
+
+
+    private async Task CuidadosSelected(SelectEventArgs<_MaestroCuidados> args)
+    {
+        GetCategoriaCuidado(args.ItemData.UidMaestroCuidados);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task NecesidadesSelected(SelectEventArgs<_MaestroNecesidades> args)
+    {
+        if (_listadoNecesidades.Any(n => n.Value == args.ItemData.TituloNecesidad)) return;
+        _listadoNecesidades.Add(new ChipItem() { Text = args.ItemData.TituloNecesidad, Value = args.ItemData.TituloNecesidad });
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task Clic(Paciente? pac = null, Cuidado? cuid = null)
+    {
+        try
+        {
+            if (pac != null && cuid != null)
+            {
+                PacienteSeleccionado = pac;
+                CuidadoEdit = cuid;
+            }
+            if (CuidadoEdit!.UidCuidado == Guid.Empty)
+            {
+                CuidadoEdit = new Cuidado
+                    {
+                        UidPaciente = PacienteSeleccionado!.UidPaciente,
+                        UidTecnicoAsign = Perfil.UidPerfil,
+                        FechaCuidado = DateTime.Now,
+                        ListadoNecesidades = string.Empty,
+                        UidMaestroCuidados = Statics.ListadoCuidadosCategoria.First().UidMaestroCuidados,
+                        Fiebre = 36,
+                        Tension = 120,
+                        Insulina = 15,
+                        UidCuidado = Guid.Empty,
+                    };
+
+                await InvokeAsync(StateHasChanged);
+            }
+
+            if (CuidadoEdit.UidCuidado != Guid.Empty)
+            {
+                _listadoNecesidades = await ConvertStringToChipList(CuidadoEdit.ListadoNecesidades);
+                _CuidadosSelected = CuidadoEdit.UidMaestroCuidados;
+                GetCategoriaCuidado(_CuidadosSelected);
+
+            }
+            else
+            {
+                _listadoNecesidades = new List<ChipItem>();
+                _CuidadosSelected = Statics.ListadoCuidadosCategoria.First().UidMaestroCuidados;
+                GetCategoriaCuidado(_CuidadosSelected);
+            }
+
+            if (await DialogRef!.Show()) // Se ha pulsado guardar
+            {
+                CuidadoEdit.Titulo = $"{Statics.ListadoCuidadosCategoria.FirstOrDefault(c => c.UidMaestroCuidados == _CuidadosSelected)!.TituloCuidado} - {PacienteSeleccionado.Nombre}";
+                CuidadoEdit.ListadoNecesidades = ConvertChipListToString(_listadoNecesidades);
+                CuidadoEdit.FechaCuidado = DateTime.Now;
+                CuidadoEdit.UidMaestroCuidados = _CuidadosSelected;
+
+                if (CuidadoEdit.UidCuidado != Guid.Empty) DbQry.UpdateOrInsert<Cuidado>(CuidadoEdit);
+                else
+                {
+                    CuidadoEdit.UidPaciente = PacienteSeleccionado.UidPaciente;
+                    CuidadoEdit.UidTecnicoAsign = Perfil.UidPerfil;
+                    CuidadoEdit.UidCuidado = Guid.NewGuid();
+                    DbQry.Insert<Cuidado>(CuidadoEdit);
+                }
+                await InvokeAsync(StateHasChanged);
+                await Globals.ShowSuccess("Cuidado creado correctamente");
+                RefreshData?.Invoke(this, EventArgs.Empty);
+            }
+            else
+            {
+                _listadoNecesidades = new List<ChipItem>();
+                _CuidadosSelected = Statics.ListadoCuidadosCategoria.First().UidMaestroCuidados;
+                GetCategoriaCuidado(_CuidadosSelected);
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Globals.ShowError(ex);
+        }
+    }
+
+
+    // Función para transformar una lista de ChipItem a un string
+    public string ConvertChipListToString(List<ChipItem> chipItems)
+    {
+        // Unimos los elementos de la lista en un string separado por ";"
+        return string.Join(";", chipItems.Select(chip => $"{chip.Text}"));
+    }
+
+    // Función para transformar un string a una lista de ChipItem
+    public async Task<List<ChipItem>> ConvertStringToChipList(string chipString)
+    {
+        var chipItems = new List<ChipItem>();
+
+        if (!string.IsNullOrEmpty(chipString))
+        {
+            // Dividimos el string en elementos individuales
+            var chips = chipString.Split(';');
+
+            foreach (var chip in chips) chipItems.Add(new ChipItem { Text = chip, Value = chip });
+
+        }
+
+        return chipItems;
+    }
+}
+
+<style>
+    .inline-form-group {
+        display: flex;
+        gap: 10px; /* Espacio entre los elementos */
+    }
+
+    .inline-form-group .form-group {
+        flex: 1;
+    }
+</style>

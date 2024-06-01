@@ -1,0 +1,199 @@
+﻿@using Justpharm.Library.Models.Medical
+@using Justpharm.Web.Components.Shared.Farmacos
+@using Justpharm.Web.Data
+@using Justpharm.Web.Repository
+@using Justpharm.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Calendars
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Inputs
+@using Justpharm.Web.Models
+@using Syncfusion.Blazor.Schedule
+@using System.Security.Claims
+
+<DialogoModal @ref="dialogModal" Title="@Titulo" BtnDone="Guardar" Height="750px" Width="600px">
+    
+    <EditForm Model="@Tratam" OnValidSubmit="@ValidSubmit">
+        <DataAnnotationsValidator />
+        <div class="row" style="padding:30px">
+            <div class="col">
+                <div class="form-group">
+                    <div class="col">
+                    <SfDropDownList TValue="Guid" Enabled=false TItem="Paciente" DataSource="MisPacientes" FloatLabelType="FloatLabelType.Always" AllowFiltering="true" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains" @bind-Value="@PacienteSeleccionado" Placeholder="Paciente">
+                        <DropDownListFieldSettings Text="@nameof(Paciente.Nombre)" Value="@nameof(Paciente.UidPaciente)"></DropDownListFieldSettings>
+                        <DropDownListEvents TItem="Paciente" TValue="Guid"></DropDownListEvents>
+                    </SfDropDownList>
+                    </div>
+                    <div class="col">
+                        <SfTextBox Placeholder="Titulo del tratamiento" FloatLabelType="FloatLabelType.Always" @bind-Value="@Tratam.Titulo" />
+                        <ValidationMessage For="@(() => Tratam.Titulo)" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <SfDateTimePicker Placeholder="Fecha y hora de inicio" TValue="DateTime" FloatLabelType="FloatLabelType.Always" @bind-Value="@Tratam.StartTime" />
+                    <ValidationMessage For="@(() => Tratam.StartTime)"></ValidationMessage>
+                </div>
+                <div class="form-group">
+                    <SfNumericTextBox Placeholder="Tomas diarias" FloatLabelType="FloatLabelType.Always" TValue="int" @bind-Value="@Tratam.Tomas" Format="0 Toma/s"></SfNumericTextBox>
+                </div>
+                @if (Tratam.Tomas > 1)
+                {
+                    <div class="form-group">
+                        <SfNumericTextBox Placeholder="Intervalo/horas" FloatLabelType="FloatLabelType.Always" TValue="double?" @bind-Value="@Tratam.Intervalo" Format="Cada 0 horas"></SfNumericTextBox>
+                    </div>
+                }
+                <div class="form-group">
+                    <SfRecurrenceEditor @ref="RecurrRef" FirstDayOfWeek="1" @bind-Value="@Tratam.RecurrenceRule"></SfRecurrenceEditor>
+                    <SfTextBox Multiline="true" Placeholder="Descripción" FloatLabelType="FloatLabelType.Always" @bind-Value="@Tratam.Descripcion" />
+                    <ValidationMessage For="@(() => Tratam.Descripcion)" />
+                </div>
+            </div>
+        </div>
+    </EditForm>
+</DialogoModal>
+
+<BaseComponent @ref="BaseRef"></BaseComponent>
+@inject DbQry Qry
+@inject UserManager<ApplicationUser> userManager
+
+@code {
+
+
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; }
+    public string UserId { get; private set; }
+    public AuthenticationState AuthState { get; private set; }
+
+    public DialogoModal dialogModal;
+    public SfRecurrenceEditor RecurrRef;
+    public BaseComponent BaseRef;
+    public InformacionFarmacoComponent FarmCardRef;
+    public SfAutoComplete<CimaResponse, CimaResponse> AutocompleteRef { get; set; }
+
+    [Parameter] public string Width { get; set; }
+    [Parameter] public Medicamento Farmaco { get; set; }
+    [Parameter] public Tratamiento Tratam { get; set; } = new();
+    [Parameter] public List<Paciente> MisPacientes { get; set; }
+    [Parameter] public CimaResponse FarmacoSelected { get; set; }
+    [Parameter] public List<CimaResponse>? Medicamentos { get; set; }
+    [Parameter] public Guid PacienteSeleccionado { get; set; }
+
+    public event EventHandler RefreshData;
+
+    private int CantidadTomas = 1;
+    private string[] Franja = ["Mañana", "Tarde", "Noche"];
+    private Medicamento medicamento = new();
+    private string Titulo;
+    private bool Editar = false;
+    private ApplicationUser User = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+
+            AuthState = await AuthenticationState;
+            var id = AuthState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (id == null) return;
+            UserId = id;
+
+            User = await userManager.FindByIdAsync(UserId);
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+    }
+
+    private async Task AsignarValoresEdicion()
+    {
+        try
+        {
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+    }
+    public async Task Clic()
+    {
+        try
+        {
+            // Mostrar el dialogo
+            if (await dialogModal.Show()) // Se ha pulsado guardar
+            {
+                // Meto todas las operaciones en una transacción para evitar perdida de datos y errores inesperados
+                Qry.PerformTransaction(db =>
+                {
+                    List<Tratamiento> tratamientos = Qry.All<Tratamiento>(t => t.UidTomas == Tratam.UidTomas).ToList();
+                    var uidsTratamientos = tratamientos.Select(t => t.UidTratamiento).ToList();
+                    List<Toma> tomas = Qry.All<Toma>(t => uidsTratamientos.Contains(t.UidTratamiento!.Value)).ToList();
+                    
+
+                    Qry.DeleteRange<Toma>(tomas.ToArray(), db);                  
+                    Qry.DeleteRange<Tratamiento>(tratamientos.ToArray(), db);
+
+                    RefreshData.Invoke(this, EventArgs.Empty);
+                    GuardarTratamientos(db);
+                });
+
+                await BaseRef.ShowSuccess("Tratamiento editado correctamente");
+
+            }
+            else
+            {
+                // Se ha pulsado cancelar
+            }
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+    }
+    private async Task GuardarTratamientos(JustpharmContext db)
+    {
+        try
+        {
+            DateTime HoraInicio = Tratam.StartTime;
+            var UidTomas = Guid.NewGuid();
+
+
+            var newTratam = new Tratamiento();
+
+            newTratam.UidTomas = UidTomas;
+            newTratam.UidPaciente = PacienteSeleccionado;
+            newTratam.Tomas = Tratam.Tomas;
+            newTratam.Titulo = Tratam.Titulo;
+            newTratam.StartTime = HoraInicio;
+            newTratam.EndTime = Tratam.EndTime;
+            newTratam.RecurrenceException = "";
+            newTratam.UsuarioId = Tratam.UsuarioId;
+            newTratam.Intervalo = Tratam.Intervalo == null ? 24 : Tratam.Intervalo;
+            newTratam.RecurrenceId = Guid.NewGuid();
+            newTratam.UidTratamiento = Guid.NewGuid();
+            newTratam.Color = Statics.GetRandomColor();
+            newTratam.Descripcion = Tratam.Descripcion;
+            newTratam.UidMedicamento = Farmaco.UidMedicamento;
+            newTratam.RecurrenceRule = Tratam.RecurrenceRule = string.IsNullOrEmpty(Tratam.RecurrenceRule) ? $"FREQ=DAILY;INTERVAL=1;" : Tratam.RecurrenceRule;
+            if (Tratam.RecurrenceRule != null) {
+                newTratam.RecurrenceSumary = RecurrRef.GetRuleSummary(Tratam.RecurrenceRule);
+                newTratam.EndTime = Statics.ExtractEndTime(Tratam.RecurrenceRule) == null ? Tratam.EndTime : Statics.ExtractEndTime(Tratam.RecurrenceRule).GetValueOrDefault();
+            }
+            Qry.Insert(newTratam, db);
+
+            List<Toma> tomas = new();
+            tomas = Statics.CrearTomasProgramadas(newTratam, Tratam.UsuarioId, User.Email);
+            Qry.Insert<Toma>(tomas.ToArray(), db);                             
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+    }
+    private void ValidSubmit(EditContext context)
+    {
+        //Tratamiento = new Tratamiento();
+    }
+}

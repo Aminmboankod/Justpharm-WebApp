@@ -1,0 +1,111 @@
+﻿@page "/Account/Manage/DeletePersonalData"
+
+@using System.ComponentModel.DataAnnotations
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Microsoft.AspNetCore.Identity
+@using Justpharm.Web.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<DeletePersonalData> Logger
+
+<PageTitle>Justpharm | Borrar cuenta</PageTitle>
+
+<StatusMessage Message="@message" />
+
+<h3>Borrar cuenta</h3>
+
+<div class="alert alert-warning" role="alert">
+    <p>
+        <strong>Eliminar estos datos eliminará permanentemente su cuenta y no se podrá recuperar.</strong>
+    </p>
+</div>
+
+<div>
+    <EditForm Model="Input" FormName="delete-user" OnValidSubmit="OnValidSubmitAsync" method="post">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" role="alert" />
+        @if (requirePassword)
+        {
+            <div class="form-floating mb-3">
+                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="Por favor, introduce tu contraseña." />
+                <label for="password" class="form-label">Contraseña</label>
+                <ValidationMessage For="() => Input.Password" class="text-danger" />
+            </div>
+        }
+        <button class="w-100 btn btn-lg btn-danger" type="submit">Eliminar los datos y cerrar la cuenta</button>
+    </EditForm>
+</div>
+
+
+@inject DbQry db
+@code {
+    private string? message;
+    private ApplicationUser user = default!;
+    private bool requirePassword;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        requirePassword = await UserManager.HasPasswordAsync(user);
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        if (requirePassword && !await UserManager.CheckPasswordAsync(user, Input.Password))
+        {
+            message = "Error: Contraseña incorrecta.";
+            return;
+        }
+
+        await BorrarCuenta(user);
+
+        var result = await UserManager.DeleteAsync(user);
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException("Error ineserado durante la acción de eliminar su usuario.");
+        }
+
+        await SignInManager.SignOutAsync();
+
+        var userId = await UserManager.GetUserIdAsync(user);
+        Logger.LogInformation("User with ID '{UserId}' deleted themselves.", userId);
+
+        RedirectManager.RedirectToCurrentPage();
+    }
+
+    private async Task BorrarCuenta(ApplicationUser user)
+    {
+        try
+        {
+            // Borrar Paciente si existe
+            var paciente = db.First<Paciente>(p => p.UserId == user.Id);
+            if (paciente != null) db.Delete(paciente);
+
+            // Borrar PerfilUsuario si existe
+
+            var perfilUsuario = db.First<PerfilUsuario>(p => p.IdAspNetUser == user.Id);
+            if (perfilUsuario != null) db.Delete(perfilUsuario);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al borrar cuenta");
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+    }
+}

@@ -1,0 +1,46 @@
+﻿<div class="container modern-shadow rounded-lg shadow-lg transition-transform transform hover:scale-20 bg-white">
+    <div class="content-wrapper">
+        <div class="column @_additionalClass ">
+            @ChildContent
+        </div>
+    </div>
+</div>
+
+@*
+Este componente es un contenedor de contenido, que se utiliza para
+mantener un aspecto consistente en toda la aplicación.
+
+Para utilizarlo, simplemente se envuelve el contenido:
+<CenterComponent>
+    <...>
+</CenterComponent>
+*@
+@code {
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object> AdditionalAttributes { get; set; }
+
+    private string _additionalClass;
+
+    protected override void OnInitialized()
+    {
+        if (AdditionalAttributes == null!) return;
+
+        if (AdditionalAttributes.TryGetValue("class", out var addclass))
+            _additionalClass = (string)addclass;
+    }
+
+}
+
+<style>
+    .modern-shadow {
+        border-radius: 0.5rem;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+
+        .modern-shadow:hover {
+            transform: scale(1.01);
+        }
+</style>

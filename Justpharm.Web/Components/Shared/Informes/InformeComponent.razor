@@ -1,0 +1,191 @@
+﻿@using Justpharm.Web.Data
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.RichTextEditor
+@rendermode InteractiveAuto
+@using Syncfusion.Blazor.RichTextEditor
+@using static Justpharm.Web.Components.Shared.Informes.ListadoInformesComponent
+<div class="row">
+<div class="col-8">
+    <h3>Informe Médico</h3>
+
+    @if (Informe != null)
+    {
+        <SfRichTextEditor Value="@Informe.Contenido">
+            <RichTextEditorToolbarSettings Items="@Tools" />
+            <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+                <h1 style="text-align: center;">Informe Médico</h1>
+                <h2>Datos del Paciente</h2>
+                <p>
+                    <strong>Nombre Completo:</strong> @paciente.Nombre @paciente.Apellidos,
+                    <strong>Edad:</strong> @paciente.Edad,
+                    <strong>Sexo:</strong> @(paciente.SexoMasculino == true ? "Masculino" : "Femenino"),
+                    <strong>DNI:</strong> @paciente.DNI,
+                    <strong>Fecha de Nacimiento:</strong> @paciente.FechaNacimiento?.ToString("dd/MM/yyyy"),
+                    <strong>Ubicación:</strong> @paciente.Ubicacion,
+                    <strong>Altura:</strong> @paciente.Altura cm,
+                    <strong>Peso:</strong> @paciente.Peso kg,
+                    <strong>Alergias:</strong> @(paciente.Alergias == true ? "Sí" : "No"),
+                    <strong>Enfermedad Crónica:</strong> @(paciente.EnfermedadCronica == true ? "Sí" : "No").
+                </p>
+
+                <h2>Detalles del Cuidado</h2>
+                <p><strong>Fecha del Cuidado:</strong> @cuidado.FechaCuidado.ToString("dd/MM/yyyy HH:mm")</p>
+                <p><strong>Nombre del Cuidado:</strong> @cuidado.Titulo</p>
+                <p><strong>Categoría del Cuidado:</strong> @Statics.ListadoCuidadosCategoria.First(c => c.UidMaestroCuidados == cuidado.UidMaestroCuidados).TituloCuidado</p>
+                <p><strong>Profesional Asignado:</strong> @profesional.Nombre</p>
+                <p><strong>Necesidades:</strong> @cuidado.ListadoNecesidades</p>
+                <p><strong>Fiebre:</strong> @cuidado.Fiebre ºC</p>
+                <p><strong>Tensión:</strong> @cuidado.Tension mmHg</p>
+                <p><strong>Glucosa:</strong> @cuidado.Insulina mg/dL</p>
+                <p><strong>Observaciones:</strong> @cuidado.Descripción</p>
+
+                <h2>Evaluación Médica</h2>
+                <p><strong>Patología:</strong></p>
+                <p>[Aquí se detalla la patología del paciente]</p>
+                <p><strong>Tratamiento Asignado:</strong></p>
+                <p>[Aquí se describe el tratamiento asignado al paciente]</p>
+                <p><strong>Procedimiento:</strong></p>
+                <p>[Aquí se detallan los procedimientos a seguir]</p>
+                <p><strong>Conclusión:</strong></p>
+                <p>[Aquí se escribe la conclusión del médico]</p>
+            </div>
+        </SfRichTextEditor>
+    }
+    else
+    {
+        <SfRichTextEditor @bind-Value="@nuevoInformeContenido">
+            <RichTextEditorToolbarSettings Items="@Tools" />
+            <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+                <h1 style="text-align: center;">Informe Médico</h1>
+                <h2>Datos del Paciente</h2>
+                <p>
+                    <strong>Nombre Completo:</strong> @paciente.Nombre @paciente.Apellidos,
+                    <strong>Edad:</strong> @paciente.Edad,
+                    <strong>Sexo:</strong> @(paciente.SexoMasculino == true ? "Masculino" : "Femenino"),
+                    <strong>DNI:</strong> @paciente.DNI,
+                    <strong>Fecha de Nacimiento:</strong> @paciente.FechaNacimiento?.ToString("dd/MM/yyyy"),
+                    <strong>Ubicación:</strong> @paciente.Ubicacion,
+                    <strong>Altura:</strong> @paciente.Altura cm,
+                    <strong>Peso:</strong> @paciente.Peso kg,
+                    <strong>Alergias:</strong> @(paciente.Alergias == true ? "Sí" : "No"),
+                    <strong>Enfermedad Crónica:</strong> @(paciente.EnfermedadCronica == true ? "Sí" : "No").
+                </p>
+
+                <h2>Detalles del Cuidado</h2>
+                <p><strong>Fecha del Cuidado:</strong> @cuidado.FechaCuidado.ToString("dd/MM/yyyy HH:mm")</p>
+                <p><strong>Nombre del Cuidado:</strong> @cuidado.Titulo</p>
+                
+                <p><strong>Profesional Asignado:</strong> @profesional.Nombre</p>
+                <p><strong>Necesidades:</strong> @cuidado.ListadoNecesidades</p>
+                <p><strong>Fiebre:</strong> @cuidado.Fiebre ºC</p>
+                <p><strong>Tensión:</strong> @cuidado.Tension mmHg</p>
+                <p><strong>Glucosa:</strong> @cuidado.Insulina mg/dL</p>
+                <p><strong>Observaciones:</strong> @cuidado.Descripción</p>
+
+                <h2>Evaluación Médica</h2>
+                <p><strong>Patología:</strong></p>
+                <p>[Aquí se detalla la patología del paciente]</p>
+                <p><strong>Tratamiento Asignado:</strong></p>
+                <p>[Aquí se describe el tratamiento asignado al paciente]</p>
+                <p><strong>Procedimiento:</strong></p>
+                <p>[Aquí se detallan los procedimientos a seguir]</p>
+                <p><strong>Conclusión:</strong></p>
+                <p>[Aquí se escribe la conclusión del médico]</p>
+            </div>
+        </SfRichTextEditor>
+        <Syncfusion.Blazor.Buttons.SfButton @onclick="Guardar">Guardar</Syncfusion.Blazor.Buttons.SfButton>
+    }
+</div>
+<div class="col-4">
+    @*Formulario donde se puede seleccionar el paciente, el cuidado, y el listado de patologias y farmacos*@
+    <div >
+        <div class="row">
+            <div class="col-12">
+                <div class="row" style="padding:50px">
+                    <div class="col-6">
+                        <label for="paciente">Paciente</label>
+                        <SfDropDownList DataSource="pacientes" TItem="Paciente" TValue="Paciente" @bind-Value="paciente" Placeholder="Seleccione un paciente" CssClass="switch-personalizado" />
+                    </div>
+                    <div class="col-6">
+                        <label for="cuidado">Cuidado</label>
+                        <SfDropDownList DataSource="Statics.ListadoCuidadosCategoria" TItem="_MaestroCuidados" TValue="_MaestroCuidados" Placeholder="Seleccione un cuidado" CssClass="switch-personalizado" >
+                            <DropDownListFieldSettings Text="@nameof(_MaestroCuidados.TituloCuidado)" Value="@nameof(_MaestroCuidados.UidMaestroCuidados)"></DropDownListFieldSettings>
+                        </SfDropDownList>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+@inject DbQry DbQry
+@code {
+    [Parameter]
+    public Informe? Informe { get; set; }
+
+    [Parameter]
+    public EventCallback<Informe> OnGuardar { get; set; }
+
+    private string nuevoInformeContenido = string.Empty;
+
+    private List<ToolbarItemModel> Tools = new List<ToolbarItemModel>()
+    {
+        new ToolbarItemModel() { Command = ToolbarCommand.Bold },
+        new ToolbarItemModel() { Command = ToolbarCommand.Italic },
+        new ToolbarItemModel() { Command = ToolbarCommand.Underline },
+        new ToolbarItemModel() { Command = ToolbarCommand.StrikeThrough },
+        new ToolbarItemModel() { Command = ToolbarCommand.FontName },
+        new ToolbarItemModel() { Command = ToolbarCommand.FontSize },
+        new ToolbarItemModel() { Command = ToolbarCommand.Separator },
+        new ToolbarItemModel() { Command = ToolbarCommand.FontColor },
+        new ToolbarItemModel() { Command = ToolbarCommand.BackgroundColor },
+        new ToolbarItemModel() { Command = ToolbarCommand.Separator },
+        new ToolbarItemModel() { Command = ToolbarCommand.Formats },
+        new ToolbarItemModel() { Command = ToolbarCommand.Alignments },
+        new ToolbarItemModel() { Command = ToolbarCommand.Separator },
+        new ToolbarItemModel() { Command = ToolbarCommand.LowerCase },
+        new ToolbarItemModel() { Command = ToolbarCommand.UpperCase },
+        new ToolbarItemModel() { Command = ToolbarCommand.SuperScript },
+        new ToolbarItemModel() { Command = ToolbarCommand.SubScript },
+        new ToolbarItemModel() { Command = ToolbarCommand.Separator },
+        new ToolbarItemModel() { Command = ToolbarCommand.OrderedList },
+        new ToolbarItemModel() { Command = ToolbarCommand.UnorderedList },
+        new ToolbarItemModel() { Command = ToolbarCommand.Outdent },
+        new ToolbarItemModel() { Command = ToolbarCommand.Indent },
+        new ToolbarItemModel() { Command = ToolbarCommand.Separator },
+        new ToolbarItemModel() { Command = ToolbarCommand.CreateLink },
+        new ToolbarItemModel() { Command = ToolbarCommand.Image },
+        new ToolbarItemModel() { Command = ToolbarCommand.CreateTable },
+        new ToolbarItemModel() { Command = ToolbarCommand.Separator },
+        new ToolbarItemModel() { Command = ToolbarCommand.ClearFormat },
+        new ToolbarItemModel() { Command = ToolbarCommand.Print },
+        new ToolbarItemModel() { Command = ToolbarCommand.SourceCode },
+        new ToolbarItemModel() { Command = ToolbarCommand.FullScreen },
+        new ToolbarItemModel() { Command = ToolbarCommand.Separator },
+        new ToolbarItemModel() { Command = ToolbarCommand.Undo },
+        new ToolbarItemModel() { Command = ToolbarCommand.Redo }
+    };
+
+
+    private async Task Guardar()
+    {
+        var nuevoInforme = new Informe
+            {
+                Fecha = DateTime.Now,
+                Contenido = nuevoInformeContenido
+            };
+        await OnGuardar.InvokeAsync(nuevoInforme);
+    }
+    private Paciente paciente = new();
+    private List<Paciente> pacientes = new();
+    private Cuidado cuidado = new();
+    private PerfilUsuario profesional = new();
+
+    protected override void OnInitialized()
+    {
+        pacientes = DbQry.All<Paciente>();
+        profesional = DbQry.First<PerfilUsuario>();
+    }
+}

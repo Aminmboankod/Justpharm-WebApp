@@ -1,0 +1,32 @@
+﻿@page "/Account/AccessDenied"
+@using Justpharm.Web.Components.Shared.Perfil
+@using Justpharm.Web.Data
+@using Syncfusion.Blazor.Notifications
+
+
+<PageTitle>Información personal</PageTitle>
+<div class="col-lg-12 control-section msg-default-section">
+    <div class="content-section">
+        <SfMessage Severity="MessageSeverity.Warning">
+            <p>Esta intentando acceder a un recurso en el que no tienes permisos</p>
+            <p>Por favor, contacte con el administrador.</p>
+        </SfMessage>
+    </div>
+</div>
+
+@code {
+
+}
+
+<style>
+   .msg-default-section .content-section {
+        margin: 0 auto;
+        max-width: 520px;
+        padding-top: 10px;
+        font-size: 24px;
+    }
+    .msg-default-section .e-message {
+        margin: 10px 0;
+        font-size: 24px;
+    }   
+</style>

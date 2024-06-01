@@ -1,0 +1,12 @@
+﻿/* color fondo de los botones primarios */
+.btn.btn-primary,
+.e-btn.e-primary {
+    background-color: unset !important;
+    background-image: var(--button-bg-gradient) !important;
+    border-color: transparent;
+}
+
+/* color texto pestaña de SfTab */
+.e-tab-wrap:not([aria-selected="true"]) > .e-text-wrap > .e-tab-text {
+    color: var(--txt-primary-color) !important;
+}

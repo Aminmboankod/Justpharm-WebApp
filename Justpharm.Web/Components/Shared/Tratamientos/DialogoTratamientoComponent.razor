@@ -1,0 +1,47 @@
+﻿@using Justpharm.Web.Components.Shared.Farmacos
+@using Justpharm.Web.Data
+@using Justpharm.Web.Repository
+@using Justpharm.Web.Models
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Inputs
+
+<DialogoModal @ref="dialogModal" Title="Agregar tratamiento" BtnDone="Guardar" Width="1200px" Height="1200px">
+    <div class="sf-edit-form-container" style="width:650px">
+        <div class="row">
+            <div class="col">
+                <div class="sf-edit-row" style="padding:25px">
+                    <SfDropDownList TValue="Guid" TItem="Paciente" DataSource="MisPacientes" FloatLabelType="FloatLabelType.Always" AllowFiltering="true" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains" @bind-Value="@PacienteSeleccionado" Placeholder="Paciente">
+                        <DropDownListFieldSettings Text="@nameof(Paciente.Nombre)" Value="@nameof(Paciente.UidPaciente)"></DropDownListFieldSettings>
+                        <DropDownListEvents TItem="Paciente" TValue="Guid"></DropDownListEvents>
+                    </SfDropDownList>
+                </div>
+                <div class="sf-edit-row" style="padding:25px">
+                    <BuscadorFarmacos @ref="BuscadorRef"></BuscadorFarmacos>
+                </div>
+                <div class="sf-edit-row" style="padding:25px">
+
+                </div>
+            </div>
+        </div>
+    </div>
+</DialogoModal>
+
+<FormularioTomas @ref="FTomasRef" />
+
+@inject DbQry Qry
+@code {
+    public FormularioTomas FTomasRef;
+    public DialogoModal dialogModal;
+    public BuscadorFarmacos BuscadorRef;
+
+    [Parameter] public List<Paciente> MisPacientes { get; set; }
+    private Guid PacienteSeleccionado;
+
+    public async Task Show()
+    {
+        if (await dialogModal.Show())
+        {
+            
+        }
+    }
+}

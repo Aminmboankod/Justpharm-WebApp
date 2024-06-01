@@ -1,0 +1,270 @@
+﻿@using System.Security.Claims
+@using Justpharm.Web.Components.Shared
+@using Justpharm.Web.Components.Shared.Perfil
+@using Justpharm.Web.Data
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Identity
+@using Syncfusion.Blazor.Buttons
+@using log4net
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.Notifications
+@using Syncfusion.Blazor.Spinner
+@inject IJSRuntime JSRuntime
+@inherits LayoutComponentBase
+<PageTitle>Justpharm</PageTitle>
+<CascadingValue Value="this">
+    <div class="page" id="main-page">
+        <main>
+            <SfAppBar CssClass="custom-appbar" ColorMode="AppBarColor.Light">
+                <span class="navbar-brand e-avatar e-avatar-circle"> <img class="logo" src="logo.svg" width="30px" alt="Justpharm"  /> </span>
+                <a href="/" class="title" style="margin: 0.3% 0.5% 0; font-weight: 600; font-size: 18px; color:white; text-decoration:none">
+                    <strong style="color:azure">JUSTPHARM</strong>
+                </a>       
+                <AppBarSpacer></AppBarSpacer>
+                <div class="d-flex align-items-center">
+                    <LoginDisplay />
+                </div>
+            </SfAppBar>
+
+@*             <article class="content px-4" style="background-color:#fafff9"> *@
+@*     <article class="content px-4 background-custom"> *@
+            <article class="content px-4" >
+                @Body
+               
+            </article>
+        </main>
+    </div>
+
+@*     <div id="blazor-error-ui">
+        Ha ocurrido un error en la aplicación 
+        <a href="" class="reload">Recargar</a>
+        <a class="dismiss">🗙</a>
+    </div> *@
+</CascadingValue>
+
+<style>
+
+    .background-custom {
+        background-image: linear-gradient(to top, #c1dfc4 0%, #deecdd 100%);
+    }
+
+    .gradient-button-custom {
+        background-image: linear-gradient(to top, #c1dfc4 0%, #deecdd 100%);
+    }
+
+    .sample_container.badge-toolbar {
+        overflow: auto;
+        display: table;
+        margin: auto;
+        margin-top: 117px;
+        padding-top: 20px;
+        padding-bottom: 20px;
+    }
+
+    .e-icons {
+        font-size: 20px;
+        font-weight: bolder;
+    }
+
+    @@media only screen and (max-width: 550px) {
+        .sample_container.badge-toolbar #toolbar .header {
+            display: none;
+        }
+
+        .material .sample_container.badge-toolbar .e-toolbar .e-toolbar-items:first-child > .e-toolbar-item:last-child {
+            margin-right: 9px;
+        }
+
+        .bootstrap .sample_container.badge-toolbar .e-toolbar .e-toolbar-items:first-child > .e-toolbar-item:last-child {
+            margin-right: 10px;
+        }
+    }
+
+    .sample_container.badge-toolbar .badge-block {
+        position: relative;
+        display: inline-block;
+        margin: 12px 12px 10px 10px;
+        width: 28px;
+        height: 20px;
+    }
+
+    .icons {
+        width: 20px;
+        height: 20px;
+        display: inline-block;
+    }
+
+    body.bootstrap5 .badge-toolbar .e-toolbar,
+    body.material .badge-toolbar .e-toolbar,
+    body.tailwind .badge-toolbar .e-toolbar {
+        border: 1px solid #dee2e6;
+    }
+
+    .tailwind-dark .sample_container.badge-toolbar,
+    .bootstrap5-dark .sample_container.badge-toolbar,
+    .bootstrap-dark .sample_container.badge-toolbar,
+    .fabric-dark .sample_container.badge-toolbar {
+        border: 1px solid #dddddd;
+    }
+
+    .sample_container.badge-toolbar .e-toolbar-items {
+        align-items: center;
+    }
+
+    .header {
+        font-size: 18px;
+    }
+    /* SVG Icons */
+    .love {
+        background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23a6a5a6' d='M8.532.81c3.029 0 5.932 1.668 7.468 4.521 2.139-3.97 6.922-5.644 11.008-3.726 4.289 2.012 6.177 7.212 4.218 11.617C29.273 17.614 16 31.19 16 31.19 15.916 31.137 2.727 17.614.774 13.222-1.186 8.817.703 3.617 4.993 1.605A8.299 8.299 0 0 1 8.532.81z'/%3E%3C/svg%3E") no-repeat 100% 100%;
+    }
+
+    .message {
+        background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23a6a5a6' d='M0 5.126h.024l7.547 7.393 8.405 8.252 8.405-8.252 7.547-7.393H32v22.6H0zm1.902-.852h28.195l-7.048 5.929L16 16.132l-7.049-5.929z'/%3E%3C/svg%3E") no-repeat 100% 100%;
+    }
+
+    .user-profile {
+        background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23a6a5a6' d='M8.772 18.363a11.978 11.978 0 0 0 7.229 2.416c2.71 0 5.214-.899 7.229-2.416 4.71.593 8.354 4.61 8.354 9.481V32H.416v-4.156c0-4.871 3.646-8.888 8.356-9.481zM16.001 0a8.727 8.727 0 1 1-.003 17.455A8.727 8.727 0 0 1 16.001 0z'/%3E%3C/svg%3E") no-repeat 100% 100%;
+    }
+
+    .e-appbar.e-light {
+        background: rgb(32, 201, 151) !important;
+        color: #f8f9fa !important;
+        border: none !important;
+        border-color: #f8f9fa !important;
+    }
+
+    .e-tab .e-tab-header {
+        background: inherit !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        font-weight: 400 !important;
+        border-bottom: 0 !important;
+        display: flex !important;
+        justify-content: center !important;
+    }
+
+    .main > div {
+        min-height: 95.8vh;
+    }
+</style>
+
+@inject ILog Log
+@inject DbQry db
+@inject UserManager<ApplicationUser> userManager
+@code{
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; }
+	public ApplicationUser User { get; set; }
+    public bool EsPaciente = false;
+    private PerfilDialogoComponent PerfilDialog;
+	
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        AuthState = await AuthenticationState;
+        var id = AuthState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (id == null) return;
+        UserId = id;
+        User = await userManager.FindByIdAsync(UserId);
+        await ComprobarPaciente(User);
+    }
+
+    private async Task ComprobarPaciente(ApplicationUser user)
+    {
+        var paciente = db.First<Paciente>(p => p.UserId == user.Id);
+        if (paciente == null)
+        {
+            EsPaciente = false;
+        }
+        else
+        {
+            EsPaciente = true;
+        }
+    }
+
+
+  
+    SfSidebar sidebarObj;
+
+    public SfToast Toast { get; private set; }
+    public SfSpinner Spinner { get; private set; }
+    public string UserId { get; private set; }
+    public AuthenticationState AuthState { get; private set; }
+    private string _title = string.Empty;
+    private string CurrentPath = "";
+
+
+    public async Task ShowError(Exception ex)
+    {
+        Log.Error(ex);
+        Toast.Title = $"({UserId}) Error: {ex.Source}";
+        Toast.Content = ex.Message;
+        Toast.CssClass = "e-toast-danger";
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(100);
+        await Toast.ShowAsync();
+    }
+
+    public async Task ShowError(string message)
+    {
+        //Log.Error($"({UserId}) Toast error: {message}");
+        Toast.Title = "Error";
+        Toast.Content = message;
+        Toast.CssClass = "e-toast-danger";
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(100);
+        await Toast.ShowAsync();
+    }
+
+    public async Task ShowSuccess(string message)
+    {
+        Toast.Title = "Éxito";
+        Toast.Content = message;
+        Toast.CssClass = "e-toast-success";
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(100);
+        await Toast.ShowAsync();
+    }
+
+    public async Task ShowInfo(string message)
+    {
+        Toast.Title = "Info";
+        Toast.Content = message;
+        Toast.CssClass = "e-toast-info";
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(100);
+        await Toast.ShowAsync();
+    }
+
+    public async Task ShowWarning(string message)
+    {
+        Log.Warn($"({UserId}) Toast warning: {message}");
+        Toast.Title = "Atención";
+        Toast.Content = message;
+        Toast.CssClass = "e-toast-warning";
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(100);
+        await Toast.ShowAsync();
+    }
+
+    public void SetTitle(string title)
+    {
+        _title = title;
+        StateHasChanged();
+    }
+
+}
+<style>
+    .fab-grid-container {
+        position: relative;
+    }
+
+    .custom-index {
+        z-index: 500 !important;
+    }
+</style>

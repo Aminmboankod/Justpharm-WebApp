@@ -1,0 +1,256 @@
+﻿@page "/Account/Register"
+
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+@using System.Text.Encodings.Web
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using Justpharm.Web.Data
+@using Syncfusion.Blazor.Buttons
+
+@inject UserManager<ApplicationUser> UserManager
+@inject IUserStore<ApplicationUser> UserStore
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IEmailSender<ApplicationUser> EmailSender
+@inject ILogger<Register> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Registro</PageTitle>
+
+
+<div class="container" style="text-align: center; width:400px">
+    <div class="row align-content-center">
+        <div class="row-md-6">
+            <div class="navbar-brand">
+                <img src="logo.svg" width="150px" />
+            </div>
+        <StatusMessage Message="@Message" />
+        <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
+            <DataAnnotationsValidator />
+            <h2>Crear una nueva cuenta</h2>
+            <hr />
+            <ValidationSummary class="text-danger" role="alert" />
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Nombre" class="form-control" aria-required="true" />
+                <label for="email" class="form-label">Nombre</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Apellidos" class="form-control" aria-required="true" />
+                <label for="email" class="form-label">Apellidos</label>
+            </div>
+            <div class="form-floating mb-3">
+                    <InputSelect @bind-Value="Input.UidMaestroPerfil" @onchange="OnPerfilChanged" class="form-control" aria-required="true">
+                    @foreach (var maestroPerfil in Statics.MaestroPerfiles)
+                    {
+                        <option class="form-control" value="@maestroPerfil.UidMaestroPerfil">@maestroPerfil.Tipo</option>
+                    }
+                </InputSelect>
+                <label for="email" class="form-label">Perfil </label>
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Centro" class="form-control" aria-required="true"   />
+                <label for="email" class="form-label">Centro</label>
+            </div>
+                
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Email"  class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                <label for="email">Email</label>
+                <ValidationMessage For="() => Input.Email" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <label for="password">Contraseña</label>
+                <ValidationMessage For="() => Input.Password" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <label for="confirm-password">Confirma la contraseña</label>
+                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
+            </div>
+            <div style="font-size:15px">
+                <SfButton IsPrimary="true" type="submit" class="w-100 btn btn-lg btn-primary p-2" style="font-size:20px">Registrar</SfButton>
+            </div>
+            <br />
+            <a href="/login"> Ya tengo una cuenta </a>
+        </EditForm>
+    </div>
+    </div>
+@*     <div class="col-md-6 col-md-offset-2">
+        <section>
+            <h3>Use another service to register.</h3>
+            <hr />
+            <ExternalLoginPicker />
+        </section>
+    </div> *@
+</div>
+@inject DbQry db
+@code {
+    private IEnumerable<IdentityError>? identityErrors;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+    private bool VinculadoACentro { get; set; } = false;
+    private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
+
+    public async Task RegisterUser(EditContext editContext)
+    {
+        // comprobar si el centro existe 
+        if (!string.IsNullOrEmpty(Input.Centro))
+        {
+            if (db.Exist<Centros>(c => c.Referencia.Equals(Input.Centro)))
+            {
+
+                var user = CreateUser();
+
+                await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+                var emailStore = GetEmailStore();
+                await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+                var result = await UserManager.CreateAsync(user, Input.Password);
+                var User = await UserManager.FindByEmailAsync(Input.Email);
+                if (!result.Succeeded)
+                {
+                    identityErrors = result.Errors;
+                    return;
+                }
+                // Añado el rol vinculado al perfil
+                await UserManager.AddToRolesAsync(User, [GetRole(Input.UidMaestroPerfil)]);
+
+                PerfilUsuario NewPerfilUsuario = new PerfilUsuario();
+                NewPerfilUsuario.UidPerfil = Guid.NewGuid();
+                NewPerfilUsuario.Nombre = Input.Nombre;
+                NewPerfilUsuario.UidMaestroPerfil = Input.UidMaestroPerfil;
+                NewPerfilUsuario.IdAspNetUser = User.Id;
+                NewPerfilUsuario.UidCentro = db.First<Centros>(c => c.Referencia.Equals(Input.Centro)).UidCentro;
+                db.Insert(NewPerfilUsuario);
+
+                if (GetRole(Input.UidMaestroPerfil) == "Paciente")
+                {
+                    Paciente newPaciente = new Paciente
+                        {
+                            UidPaciente = Guid.NewGuid(),
+                            UserId = User.Id,
+                            Nombre = Input.Nombre,
+                            Apellidos = Input.Apellidos
+                        };
+                        db.Insert(newPaciente);
+                }
+
+                Logger.LogInformation("Usuario creado con una nueva cuenta y contraseña.");
+
+                var userId = await UserManager.GetUserIdAsync(user);
+                var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+                code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+                var callbackUrl = NavigationManager.GetUriWithQueryParameters(
+                    NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
+                    new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
+
+                await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
+
+                if (UserManager.Options.SignIn.RequireConfirmedAccount)
+                {
+                    RedirectManager.RedirectTo(
+                        "Account/RegisterConfirmation",
+                        new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
+                }
+
+                await SignInManager.SignInAsync(user, isPersistent: false);
+                RedirectManager.RedirectTo(ReturnUrl);
+            }
+            else
+            {
+                identityErrors = new List<IdentityError> { new IdentityError { Code = "Centro", Description = "El centro no existe" } };
+                return;
+            }
+        }
+    }
+
+    private ApplicationUser CreateUser()
+    {
+        try
+        {
+            return Activator.CreateInstance<ApplicationUser>();
+        }
+        catch
+        {
+            throw new InvalidOperationException($"Can't create an instance of '{nameof(ApplicationUser)}'. " +
+                $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor.");
+        }
+    }
+
+    private IUserEmailStore<ApplicationUser> GetEmailStore()
+    {
+        if (!UserManager.SupportsUserEmail)
+        {
+            throw new NotSupportedException("The default UI requires a user store with email support.");
+        }
+        return (IUserEmailStore<ApplicationUser>)UserStore;
+    }
+
+    private void UsuarioVinculadoaCentro(Guid UidMaestroPerfil)
+    {
+        var maestroPerfil = Statics.MaestroPerfiles.FirstOrDefault(p => p.UidMaestroPerfil == UidMaestroPerfil);
+        if (maestroPerfil == null) VinculadoACentro = false;
+        if (maestroPerfil.Ref < 4) VinculadoACentro =  true;
+        else VinculadoACentro = false;
+    }
+
+
+    private async Task OnPerfilChanged(ChangeEventArgs e)
+    {
+        if (e.Value != null && Guid.TryParse(e.Value.ToString(), out Guid perfilId))
+        {
+            UsuarioVinculadoaCentro(perfilId);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private string GetRole(Guid UidMaestroPerfil)
+    {
+        var maestroPerfil = Statics.MaestroPerfiles.FirstOrDefault(p => p.UidMaestroPerfil == UidMaestroPerfil);
+        if (maestroPerfil == null) return "";
+        return maestroPerfil.Tipo;
+    }
+
+
+    private sealed class InputModel
+    {
+
+        [Required]
+        [Display(Name = "Nombre")]
+        public string Nombre { get; set; } = "";
+
+        [Required]
+        [Display(Name = "Apellidos")]
+        public string Apellidos { get; set; } = "";
+
+        [Required]
+        [Display(Name = "Perfil")]
+        public Guid UidMaestroPerfil { get; set; } = Statics.MaestroPerfiles.FirstOrDefault().UidMaestroPerfil;
+
+        [Display(Name = "Referencia del Centro")]
+        public string Centro { get; set; } = "";
+
+        [Required]
+        [EmailAddress]
+        [Display(Name = "Email")]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [StringLength(100, ErrorMessage = "La contraseña debe contener un mínimo de 6 carácteres y cotnener alfanuméricos.", MinimumLength = 6)]
+        [DataType(DataType.Password)]
+        [Display(Name = "Contraseña")]
+        public string Password { get; set; } = "";
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirmar contraseña")]
+        [Compare("Password", ErrorMessage = "Las contraseñas no coinciden.")]
+        public string ConfirmPassword { get; set; } = "";
+    }
+}

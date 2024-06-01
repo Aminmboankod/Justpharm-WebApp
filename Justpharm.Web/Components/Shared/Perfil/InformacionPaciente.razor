@@ -1,0 +1,119 @@
+@using Justpharm.Web.Components.Shared.Tratamientos
+@using Justpharm.Web.Data
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Calendars
+
+
+<AuthorizeView>
+<div class="col-md-3 e-dashboard-profile">
+        <h4>Mi perfil</h4>
+    <div class="col-md-12 col-sm-12">
+        <div id="activity-profile-panel-id" class="e-panel e-activity-profile-panel" data-row="0" data-col="4" data-sizeX="1" data-sizeY="3">
+            <div class="e-panel-container">
+                <div>
+                    <div class="e-card e-custom-card">
+                        <div class="e-card-header">
+                            <div class="e-avatar e-avatar-circle" >
+                                <img src="@(_paciente.SexoMasculino.Value ? "02.png" : "01.png")" alt="Foto de perfil" />
+                            </div>
+ @*                            <SfButton CssClass="e-profile-edit-btn" IconCss="icon-edit-2" OnClick="(args) => EditarDPersonales()" ></SfButton> *@
+                        </div>
+                        <div class="e-card-header">
+                            <div class="e-card-header-caption center">
+                                <div class="e-card-header-title">@context.User.Identity?.Name</div>
+                            </div>
+                        </div>
+                        <div class="container">
+                            @if (_paciente != null)
+                                {
+                                    <table class="e-profile-details">
+                                        <tr>
+                                            <td>
+                                                <div class="profile-row">Peso</div>
+                                            </td>
+                                            <td>
+                                                <div class="profile-row">Altura</div>
+                                            </td>
+                                            <td>
+                                                <div class="profile-row">Edad</div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="profile-value">@($"{_paciente.Peso} Kg")</div>
+                                            </td>
+                                            <td>
+                                                <div class="profile-value">@($"{_paciente.Altura} cm")</div>
+                                            </td>
+                                            <td>
+                                                <div class="profile-value">@($"{_paciente.Edad} Años")</div>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                }
+                            </div>
+                    </div>
+                    <div>
+@*                         <div class="e-journal" style="float: left;">Fecha</div>
+                        <div class="e-journal-date" style="float: right;">
+                            <SfDatePicker TValue="DateTime?" ShowClearButton="true" Max="DateTime.Now" Width="100%">
+                                <DatePickerEvents TValue="DateTime?"></DatePickerEvents>
+                            </SfDatePicker>
+                        </div> *@
+                    </div>
+                        <div class="profile-diet-card-container" style="height: 600px;">
+                        @* <ListadoTratamientosComponent User="_user"></ListadoTratamientosComponent> *@
+                        <MisTratamientosGridComponent User="_user"></MisTratamientosGridComponent>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</AuthorizeView>
+<PerfilDialogoComponent @ref="PerfilDialog" User="_user"></PerfilDialogoComponent>
+@inject DbQry db
+@inject UserManager<ApplicationUser> UserManager
+@code{
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; }
+    public string UserId { get; private set; }
+    public AuthenticationState AuthState { get; private set; }
+    public Paciente? _paciente { get; set; }
+    private ApplicationUser? _user { get; set; }
+    private PerfilDialogoComponent PerfilDialog;
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        AuthState = await AuthenticationState;
+        var id = AuthState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (id == null) return;
+        UserId = id;
+        _user = await UserManager.FindByIdAsync(UserId);
+        _paciente = db.All<Paciente>().FirstOrDefault(x => x.UserId == UserId);
+        if (_paciente == null)
+        {
+            _paciente = new Paciente
+            {
+                UserId = UserId,
+                SexoMasculino = false,
+                Peso = 0,
+                Altura = 0,
+                Edad = 0
+            };
+        }
+    }
+
+    private async Task EditarDPersonales()
+    {
+        await PerfilDialog.Clic();
+    }
+}

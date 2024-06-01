@@ -1,0 +1,104 @@
+﻿@using Justpharm.Library.Models.Medical
+@using Justpharm.Web.Components.Layout
+@using Justpharm.Web.Data
+@using Justpharm.Web.Services
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.SfPdfViewer
+@rendermode InteractiveServer
+
+<div  style="text-align:center">
+    <SfAutoComplete CssClass="buscador" @ref="AutocompleteRef" TValue="CimaResponse" TItem="CimaResponse" @bind-Value="@FarmacoSelected"
+                    Placeholder="Escribe aquí el nombre del fármaco que desea consultar"
+                    DataSource="@Medicamentos"
+                    AllowFiltering="true">
+        <AutoCompleteFieldSettings Value="Nombre"></AutoCompleteFieldSettings>
+        <AutoCompleteEvents TValue="CimaResponse" TItem="CimaResponse" Filtering="@Filteringhandler"></AutoCompleteEvents>
+    </SfAutoComplete>
+</div>
+<br />
+<br />
+@if (FarmacoSelected != null)
+{
+    <div class="container" style="text-align:center; padding: 10px">
+        <div class="row">
+            <div class="col">
+                <InformacionFarmacoComponent @ref="FarmCardRef" Medicine="@FarmacoSelected"></InformacionFarmacoComponent>
+            </div>          
+        </div>
+    </div>
+}
+
+<BaseComponent @ref="BaseRef"></BaseComponent>
+@code {
+    public BaseComponent BaseRef;
+    public InformacionFarmacoComponent FarmCardRef;
+    public event EventHandler RefreshData;
+
+    protected override async Task OnInitializedAsync()
+    {
+        //await SuscrEvents();
+        await OnCreated();
+    }
+
+    [Parameter] public CimaResponse FarmacoSelected { get; set; }
+    [Parameter] public List<CimaResponse>? Medicamentos { get; set; }
+
+    private async Task SuscrEvents()
+    {
+        FarmCardRef.RefreshData += RefreshData;
+    }
+
+    public SfAutoComplete<CimaResponse, CimaResponse> AutocompleteRef { get; set; }
+    
+    private async Task OnCreated()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Filteringhandler(FilteringEventArgs args)
+    {
+        try
+        {
+            string value = args.Text.Replace("\"", "");
+            //if (args.Text.Length < 2) return;
+            Medicamentos = await CimaRestApi.GetFarmacosFilter(value);
+            
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            //await BaseRef.ShowError($"No ha sido posible filtrar los datos");
+        }
+    }
+}
+<style>
+    .rounded-corner {
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+        border-radius: 25px;
+        overflow: hidden;
+        width: 100%;
+    }
+
+        .rounded-corner:hover {
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
+        }
+
+    /* Estilo para el input tipo buscador similar al de Google */
+    .buscador {
+        padding: 10px 30px 10px 10px !important; /* Ajusta el padding según necesidad */
+        border: 1px solid #ccc !important; /* Borde del input */
+        border-radius: 20px !important; /* Bordes redondeados */
+        box-sizing: border-box !important; /* Incluye el padding y el borde en el ancho total */
+        outline: none !important; /* Quita el contorno al hacer clic en el input */
+    }
+
+    .e-ddl.e-input-group .e-input-value, .e-ddl.e-input-group .e-input-value:focus {
+        font-family: inherit;
+        font-size: 14px;
+        height: auto;
+        margin: 0;
+        outline: none;
+        width: 100%;
+        padding-top: 7px;
+    }
+</style>

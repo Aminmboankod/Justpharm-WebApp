@@ -1,0 +1,359 @@
+﻿
+@using Syncfusion.Blazor.Charts
+@using Syncfusion.Blazor
+@using Syncfusion.Blazor.Layouts
+@using System.Timers
+@inject NavigationManager NavigationManager
+
+<div class="control-section">
+    <SfDashboardLayout @ref="sfDashboardLayout" CellSpacing="@(new double[]{15 ,15 })" CellAspectRatio="@cellAspectRatio" Columns="@columns">
+        <DashboardLayoutPanels>
+            <DashboardLayoutEvents Created="LayoutCreated" OnWindowResize="OnWindowResize"></DashboardLayoutEvents>
+            <DashboardLayoutPanel Column="0" Row="0" SizeX="@columnSizeX" SizeY="@columnSizeY">
+                <HeaderTemplate>
+					<span class="title">Medicamentos con/sin receta - Por año</span>
+				</HeaderTemplate>
+                <ContentTemplate>
+                    @if (isLayoutRender)
+                    {
+                        <SfChart @ref="chart1" Theme="@theme" Width="@Width" Height="@Height">
+                            <ChartArea>
+                                <ChartAreaBorder Width="0"></ChartAreaBorder>
+                            </ChartArea>
+                            <ChartPrimaryYAxis Minimum="0" Maximum="100" LabelFormat="{value}%">
+                                <ChartAxisMajorTickLines Width="0"></ChartAxisMajorTickLines>
+                                <ChartAxisLineStyle Width="0"></ChartAxisLineStyle>
+                                <ChartAxisLabelStyle Size="11px"></ChartAxisLabelStyle>
+                                <ChartAxisTitleStyle Size="13px"></ChartAxisTitleStyle>
+                            </ChartPrimaryYAxis>
+                            <ChartSeriesCollection>
+                                <ChartSeries DataSource="@ColumnChartDataCollection" Name="Con receta" Fill="#2485FA" XName="Period" YName="Percentage" Type="ChartSeriesType.Column">
+                                    <ChartMarker>
+                                        <ChartDataLabel Visible="true" Position="LabelPosition.Middle" Name="TextMapping">
+                                            <ChartDataLabelFont Color="#FFFFFF"></ChartDataLabelFont>
+                                        </ChartDataLabel>
+                                    </ChartMarker>
+                                </ChartSeries>
+                                <ChartSeries DataSource="@ColumnChartData" Fill="#FEC200" Name="Sin receta" XName="Period" YName="Percentage" Type="ChartSeriesType.Column">
+                                    <ChartMarker>
+                                        <ChartDataLabel Visible="true" Position="LabelPosition.Middle" Name="TextMapping">
+                                            <ChartDataLabelFont Color="#FFFFFF"></ChartDataLabelFont>
+                                        </ChartDataLabel>
+                                    </ChartMarker>
+                                </ChartSeries>
+                            </ChartSeriesCollection>
+                        </SfChart>
+                    }
+                </ContentTemplate>
+            </DashboardLayoutPanel>
+            <DashboardLayoutPanel Column="@pieColumn" Row="0" SizeX="@pieSizeX" SizeY="@pieSizeY">
+                <HeaderTemplate>
+					<span class="title">% Fármacos registrados - Laboratorio</span>
+				</HeaderTemplate>
+                <ContentTemplate>
+                        @if (isLayoutRender)
+                        {
+                            <SfAccumulationChart EnableAnimation="true" Width="@Width" Height="@Height" Theme="@theme" EnableBorderOnMouseMove="false" EnableSmartLabels="false">
+                                <AccumulationChartBorder Color="transparent"></AccumulationChartBorder>
+                                <AccumulationChartTooltipSettings Enable="true" Format="${point.x}"></AccumulationChartTooltipSettings>
+                                <AccumulationChartSeriesCollection>
+                                    <AccumulationChartSeries DataSource="@PieChartDataCollection" Radius="@Radius" XName="Product" YName="Percentage" InnerRadius="40%" Palettes="@palettes" StartAngle="270" EndAngle="270">
+                                        <AccumulationChartSeriesBorder Color="@Color" Width="3"></AccumulationChartSeriesBorder>
+                                        <AccumulationDataLabelSettings Visible="true" Name="TextMapping" Position="AccumulationLabelPosition.Outside">
+                                            <AccumulationChartConnector Length="10px" Type="ConnectorType.Curve"></AccumulationChartConnector>
+                                        </AccumulationDataLabelSettings>
+                                    </AccumulationChartSeries>
+                                </AccumulationChartSeriesCollection>
+                                <AccumulationChartLegendSettings Visible="false"></AccumulationChartLegendSettings>
+                            </SfAccumulationChart>
+                        }
+                </ContentTemplate>
+            </DashboardLayoutPanel>
+            <DashboardLayoutPanel Column="0" Row="@splineRow" SizeX="@splineSizeX" SizeY="@splineSizeY">
+                <HeaderTemplate>
+                    <span class="title">%Usuario uso de fármacos - Mes</span>
+				</HeaderTemplate>
+                <ContentTemplate>
+                    @if (isLayoutRender)
+                    {
+                        <SfChart @ref="chart2" Theme="@theme" Width="@Width" Height="@Height">
+                            <ChartArea>
+                                <ChartAreaBorder Width="0"></ChartAreaBorder>
+                            </ChartArea>
+                            <ChartPrimaryXAxis ValueType="Syncfusion.Blazor.Charts.ValueType.Category" EdgeLabelPlacement="EdgeLabelPlacement.Shift">
+                                <ChartAxisMajorGridLines Width="0"></ChartAxisMajorGridLines>
+                                <ChartAxisMajorTickLines Width="0"></ChartAxisMajorTickLines>
+                                <ChartAxisLabelStyle Size="11px"></ChartAxisLabelStyle>
+                            </ChartPrimaryXAxis>
+                            <ChartPrimaryYAxis LabelFormat="{value}%" Minimum="0" Maximum="100">
+                                <ChartAxisLineStyle Width="0"></ChartAxisLineStyle>
+                                <ChartAxisMajorTickLines Width="0"></ChartAxisMajorTickLines>
+                                <ChartAxisLabelStyle Size="11px"></ChartAxisLabelStyle>
+                                <ChartAxisTitleStyle Size="13px"></ChartAxisTitleStyle>
+                            </ChartPrimaryYAxis>
+                            <ChartTooltipSettings Enable="true" Shared="true" EnableMarker="false"></ChartTooltipSettings>
+                            <ChartSeriesCollection>
+                                <ChartSeries DataSource="@ChartDataCollection" XName="Period" Opacity="0.3" Width="2.5" PointColorMapping="PointColor" YName="Percentage" Name="Hombres" Type="ChartSeriesType.SplineArea" Fill="@FillColor">
+                                    <ChartSeriesBorder Width="2.5" Color="@BorderColor"></ChartSeriesBorder>
+                                </ChartSeries>
+                                  <ChartSeries DataSource="@ChartDataCollection1" XName="Period" Opacity="0.3" Width="2.5" PointColorMapping="PointColor" YName="Percentage" Name="Mujeres" Type="ChartSeriesType.SplineArea" Fill="@FillColor2">
+                                    <ChartSeriesBorder Width="2.5" Color="@BorderColor2"></ChartSeriesBorder>
+                                </ChartSeries>
+                            </ChartSeriesCollection>
+                            <ChartLegendSettings EnableHighlight="true"></ChartLegendSettings>
+                        </SfChart>
+                    }
+                </ContentTemplate>
+            </DashboardLayoutPanel>
+        </DashboardLayoutPanels>
+    </SfDashboardLayout>
+</div>
+<style>
+    ellipse[id*=_Trackball_1] {
+        stroke-width: 1 !important;
+        stroke: white !important;
+    }
+</style>
+
+<style>
+    .e-dashboardlayout {
+        padding: 20px;
+        z-index: 0;
+    }
+
+    .e-panel {
+        cursor: auto !important;
+    }
+
+    .e-panel-header {
+        border: none !important;
+        background-color: @HeaderColor;
+        height: 50px !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .title {
+        font-size: 15px;
+        font-weight: bold;
+        color: @TitleColor;
+    }
+</style>
+@code {
+
+    #region Estadisticas
+    private bool isLayoutRender;
+    string Width = "100%";
+    string Height = "100%";
+    string BorderColor = "#2485FA";                
+    string BorderColor2 = "#FEC200";
+    string FillColor2;
+    string FillColor;
+    string Color;
+    string Radius = "75%";
+    string HeaderColor;
+    string TitleColor;
+    string CurrentUri;
+    string valueUrl = "url";
+    double cellAspectRatio;
+    int columns, pieColumn, splineRow, columnSizeX, columnSizeY, pieSizeX, pieSizeY, splineSizeX, splineSizeY;
+    private Theme theme;
+    private static Timer timer;
+    SfChart chart1;
+    SfChart chart2;
+    SfDashboardLayout sfDashboardLayout;
+    DateTime previousRequestTime = DateTime.MinValue;
+    private string[] palettes = new string[] { "#61EFCD", "#CDDE1F", "#FEC200", "#CA765A", "#2485FA", "#F57D7D", "#C152D2",
+    "#8854D9", "#3D4EB8", "#00BCD7","#4472c4", "#ed7d31", "#ffc000", "#70ad47", "#5b9bd5", "#c1c1c1", "#6f6fe2", "#e269ae", "#9e480e", "#997300" };
+    public List<ChartData> ChartDataCollection { get; set; } = new List<ChartData>
+    {
+        new ChartData { Period = "Jan", Percentage = 36 },
+        new ChartData { Period = "Feb", Percentage = 62 },
+        new ChartData { Period = "Mar", Percentage = 81 },
+        new ChartData { Period = "Apr", Percentage = 59 },
+        new ChartData { Period = "May", Percentage = 89 },
+        new ChartData { Period = "Jun", Percentage = 72 },
+        new ChartData { Period = "Jul", Percentage = 43 },
+        new ChartData { Period = "Aug", Percentage = 46 },
+        new ChartData { Period = "Sep", Percentage = 55 },
+        new ChartData { Period = "Oct", Percentage = 63 },
+        new ChartData { Period = "Nov", Percentage = 57 },
+        new ChartData { Period = "Dec", Percentage = 80 }
+    };
+    public List<ChartData> ChartDataCollection1 { get; set; } = new List<ChartData>
+    {
+        new ChartData { Period = "Jan", Percentage = 64,},
+        new ChartData { Period = "Feb", Percentage = 53 },
+        new ChartData { Period = "Mar", Percentage = 49 },
+        new ChartData { Period = "Apr", Percentage = 53 },
+        new ChartData { Period = "May", Percentage = 42 },
+        new ChartData { Period = "Jun", Percentage = 65 },
+        new ChartData { Period = "Jul", Percentage = 79 },
+        new ChartData { Period = "Aug", Percentage = 38 },
+        new ChartData { Period = "Sep", Percentage = 68 },
+        new ChartData { Period = "Oct", Percentage = 34 },
+        new ChartData { Period = "Nov", Percentage = 64 },
+        new ChartData { Period = "Dec", Percentage = 68 }
+    };
+    public List<ChartData> PieChartDataCollection { get; set; } = new List<ChartData>
+    {
+        new ChartData { Product = "Ferrer Internacional S.A.: 30 (12%)", Percentage = 12, TextMapping = "Ferrer Internacional S.A., 30 <br/>12%"},
+        new ChartData { Product = "Reddy Pharma Iberia S.A.: 20 (8%)", Percentage = 8, TextMapping = "Reddy Pharma Iberia S.A., 20 <br/>8%"},
+        new ChartData { Product = "Kern Pharma S.L.: 40 (16%)",  Percentage = 16, TextMapping = "Kern Pharma S.L., 40 <br/>16%"},
+        new ChartData { Product = "Laboratorios Normon S.A.: 90 (36%)", Percentage = 36, TextMapping = "Laboratorios Normon S.A., 90 <br/>36%"},
+        new ChartData { Product = "Sandoz Farmaceutica S.A.: 27 (11%)", Percentage = 11, TextMapping = "Sandoz Farmaceutica S.A., 27 <br/>11%"}
+    };
+    public List<ChartData> ColumnChartDataCollection { get; set; } = new List<ChartData>
+    {
+        new ChartData { Period = "2017", Percentage = 60, TextMapping = "60%" },
+        new ChartData { Period = "2018", Percentage = 56, TextMapping = "56%"},
+        new ChartData { Period = "2019", Percentage = 71, TextMapping = "71%" },
+        new ChartData { Period = "2020", Percentage = 85, TextMapping = "85%" },
+        new ChartData { Period = "2021", Percentage = 73, TextMapping = "73%" },
+    };
+    public List<ChartData> ColumnChartData { get; set; } = new List<ChartData>
+    {
+        new ChartData { Period = "2017", Percentage = 40, TextMapping = "40%" },
+        new ChartData { Period = "2018", Percentage = 44, TextMapping = "44%"},
+        new ChartData { Period = "2019", Percentage = 29, TextMapping = "29%" },
+        new ChartData { Period = "2020", Percentage = 15, TextMapping = "15%" },
+        new ChartData { Period = "2021", Percentage = 27, TextMapping = "27%" },
+    };
+    protected override async Task OnInitializedAsync()
+    {
+        if(true)
+        {
+            Radius = "70%";
+        }
+
+        CurrentUri = NavigationManager.Uri;
+        cellAspectRatio = 0.8;
+        columns = 8;
+        columnSizeX = 5;
+        columnSizeY = 2;
+        pieColumn = 5;
+        pieSizeX = 3;
+        pieSizeY = 2;
+        splineRow = 2;
+        splineSizeX = 8;
+        splineSizeY = 3;
+        FillColor = String.Concat(valueUrl, "(#gradient-chart)");
+        FillColor2 = String.Concat(valueUrl, "(#gradient-chart1)");   
+        if (CurrentUri.IndexOf("dark") > -1)
+        {
+            TitleColor = "#F3F2F1";
+            if (CurrentUri.IndexOf("material") > -1)
+            {
+                Color = "#303030";
+                HeaderColor = "#303030";
+            }
+            else if(CurrentUri.IndexOf("bootstrap5") > -1)
+            {
+                Color = "#212529";
+                HeaderColor = "#212529";
+            }
+            else if(CurrentUri.IndexOf("bootstrap") > -1)
+            {
+                Color = "#1A1A1A";
+                HeaderColor = "#1A1A1A";
+            }
+            else if(CurrentUri.IndexOf("tailwind") > -1)
+            {
+                Color = "#1F2937";
+                HeaderColor = "#1F2937";
+            }
+            else
+            {
+                Color = "#222222";
+                HeaderColor = "#222222";
+            }
+        }
+        else if(CurrentUri.IndexOf("highcontrast") > -1)
+        {
+            Color = "#000000";
+            HeaderColor = "#000000";
+            TitleColor = "#F3F2F1";
+        }
+        else
+        {
+            Color = "#FFFFFF";
+            HeaderColor = "#FAFAFA";
+            TitleColor = "#737373";
+        }
+        await DataLoaded();
+    }
+    public async Task DataLoaded()
+    {
+        foreach(ChartData chartData in ChartDataCollection)
+        {
+            chartData.PointColor = FillColor;
+        }
+        foreach(ChartData chartData1 in ChartDataCollection1)
+        {
+            chartData1.PointColor = FillColor2;
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+    public void LayoutCreated()
+    {
+        isLayoutRender = true;
+        timer = new Timer(1000);
+        timer.Elapsed += RefreshCharts;
+        timer.AutoReset = true;
+        timer.Enabled = true;
+    }
+    private async Task OnWindowResize(Syncfusion.Blazor.Layouts.ResizeArgs args)
+    {
+        const int UPDATETHRESHOLD = 200;
+        if ((previousRequestTime == DateTime.MinValue || (DateTime.Now - previousRequestTime).TotalMilliseconds > UPDATETHRESHOLD))
+        {
+            previousRequestTime = DateTime.Now;
+            await Task.Delay(UPDATETHRESHOLD);
+            await sfDashboardLayout.RefreshAsync();
+        }
+    }
+    private void RefreshCharts(Object source, ElapsedEventArgs e)
+    {
+        if (chart1 == null && chart2 == null)
+            return;
+        chart1.RefreshAsync(false);
+        chart2.RefreshAsync(false);
+        timer.Enabled = false;
+        timer.AutoReset = false;
+    }
+    public class ChartData
+    {
+        public string Period { get; set; }
+        public string Product { get; set; }
+        public double Percentage { get; set; }
+        public string TextMapping { get; set; }
+        public string AnnotationX { get; set; }
+        public string AnnotationY { get; set; }
+        public string PointColor { get; set; }
+    }
+    #endregion
+}
+<style>
+    #control-container {
+        padding: 0px !important;
+    }
+	#gradient-chart stop {
+        stop-color: #2485FA;        
+    }
+    #gradient-chart1 stop{
+        stop-color: #FEC200;
+    } 
+</style>
+<svg style="height: 0">
+    <defs>       
+        <linearGradient id="gradient-chart" style="opacity: 0.75" class="chart-gradient" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0"></stop>
+            <stop offset="1"></stop>
+        </linearGradient>
+         <linearGradient id="gradient-chart1" style="opacity: 0.75" class="chart-gradient" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0"></stop>
+            <stop offset="1"></stop>
+        </linearGradient>
+    </defs>
+</svg>

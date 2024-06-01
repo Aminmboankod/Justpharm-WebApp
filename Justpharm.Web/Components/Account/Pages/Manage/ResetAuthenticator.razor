@@ -1,0 +1,53 @@
+﻿@page "/Account/Manage/ResetAuthenticator"
+
+@using Microsoft.AspNetCore.Identity
+@using Justpharm.Web.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<ResetAuthenticator> Logger
+
+<PageTitle>Restablecer clave de autenticador</PageTitle>
+
+<StatusMessage />
+<h3>Restablecer clave de autenticador</h3>
+<div class="alert alert-warning" role="alert">
+    <p>
+        <span class="glyphicon glyphicon-warning-sign"></span>
+        <strong>Si restableces tu clave de autenticador, tu aplicación de autenticación no funcionará hasta que la vuelvas a configurar.</strong>
+    </p>
+    <p>
+        Este proceso desactiva la autenticación de dos factores hasta que verifiques tu aplicación de autenticador.
+        Si no completas la configuración de tu aplicación de autenticador, podrías perder el acceso a tu cuenta.
+    </p>
+</div>
+<div>
+    <form @formname="reset-authenticator" @onsubmit="OnSubmitAsync" method="post">
+        <AntiforgeryToken />
+        <button class="btn btn-danger" type="submit">Restablecer clave de autenticador</button>
+    </form>
+</div>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private async Task OnSubmitAsync()
+    {
+        var user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        await UserManager.SetTwoFactorEnabledAsync(user, false);
+        await UserManager.ResetAuthenticatorKeyAsync(user);
+        var userId = await UserManager.GetUserIdAsync(user);
+        Logger.LogInformation("El usuario con ID '{UserId}' ha restablecido su clave de autenticación de la aplicación.", userId);
+
+        await SignInManager.RefreshSignInAsync(user);
+
+        RedirectManager.RedirectToWithStatus(
+            "Account/Manage/EnableAuthenticator",
+            "Se ha restablecido tu clave de autenticador, deberás configurar tu aplicación de autenticador usando la nueva clave.",
+            HttpContext);
+    }
+}
+

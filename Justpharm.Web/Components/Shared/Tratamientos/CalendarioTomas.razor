@@ -1,0 +1,257 @@
+@using Justpharm.Web.Components.Shared.Farmacos
+@using Justpharm.Web.Components.Shared.Perfil
+@using Justpharm.Web.Data
+@using Justpharm.Web.Data.Appointments
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Schedule
+@using System.Security.Claims
+<br />
+@* EventRendered="AsignacionColorAppointment" *@
+<div class="container-fluid">
+    <div style="padding-bottom:20px">
+        
+        <SfDropDownList TValue="Guid" CssClass="buscador" FloatLabelType="FloatLabelType.Always" TItem="Paciente" Enabled="true" DataSource="@MisPacientes" AllowFiltering="true" FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains" @bind-Value="@PacienteSeleccionado">
+            <DropDownListFieldSettings Text="@nameof(Paciente.Nombre)" Value="@nameof(Paciente.UidPaciente)"></DropDownListFieldSettings>
+            <DropDownListEvents TItem="Paciente" TValue="Guid" ValueChange="ActionBeginDropDown"></DropDownListEvents>
+            <DropDownListTemplates TItem="Paciente">
+                <ItemTemplate>
+                    <span style="font-size:15px; padding-left:18px"><span class='name'>@((context as Paciente).Nombre) @((context as Paciente).Apellidos)</span><span class='country'>@((context as Paciente).DNI)</span></span>
+                </ItemTemplate>
+                <ValueTemplate>
+                    <span style="font-size:15px; padding-left:18px; padding-top:10px">@((context as Paciente).Nombre) @((context as Paciente).Apellidos) @((context as Paciente).DNI)</span>
+                </ValueTemplate>
+            </DropDownListTemplates>
+        </SfDropDownList>
+    </div>
+    <div class="rounded-corner" style="background-color:white">
+
+            <SfButton IsPrimary="true" Content="Exportar" OnClick="OnExportToIcs" IconCss="bi-arrow-bar-up"></SfButton>
+            <SfButton IsPrimary="true" Content="Imprimir" OnClick="OnPrintToPDF" IconCss="bi-printer"></SfButton>
+        
+        <SfSchedule @ref="SCheduleRef" TValue=AppointmentData Height="650px" FirstDayOfWeek="1" @bind-SelectedDate="@CurrentDate" EnableAutoRowHeight="true" DateFormat="dd-MMM-yyyy" CurrentView="View.Month">
+            <ScheduleEvents TValue="AppointmentData" ></ScheduleEvents>
+            <ScheduleEventSettings DataSource="@Appointments" SortBy="StartTime" EnableTooltip="true" >
+                <Template>
+                    @{
+                        var data = context as AppointmentData;
+                    }
+                    <div style="display: flex; justify-content: center; text-align: center">
+                        <div style="margin: 0 10px;">@((context as AppointmentData).Subject) </div>
+                    </div>
+                </Template>
+                <TooltipTemplate>
+                     @{
+                        var data = context as AppointmentData;
+                        var tratm = MisTratamientosUnicos.FirstOrDefault(t => t.UidTomas == data.UidTomas);
+                        var pac = MisPacientes.FirstOrDefault(t => t.UidPaciente == tratm.UidPaciente);
+                        var medicamento = MisMedicamentos.FirstOrDefault(t => t.UidMedicamento == tratm.UidMedicamento);
+                     }
+                    <div class="tooltip-wrap">
+                        <div>Paciente   : @($"{pac.Nombre} {pac.Apellidos}")</div>
+                        <div>DNI    : @(pac.DNI)</div>
+                        <div>Dieta  : @(Statics.ListadoDietas.Find(p => p.UidMaestroDieta == pac.UidMaestroDieta).Titulo)</div>
+                        <br />
+                        <div>Titulo  : @((context as AppointmentData).Subject)</div>
+                        <div>Medicamento    : @(medicamento!.Nombre)</div>
+                        <img src="@(medicamento.Imagen)" alt="@(medicamento!.Nombre)" />
+                        <div>Descripcion : @((context as AppointmentData).Description)</div>
+                        <div>Inicio  : @((context as AppointmentData).StartTime.ToShortDateString())</div>
+                        <div>Final : @((context as AppointmentData).EndTime.ToShortDateString()) </div>
+                        
+                    </div>
+                </TooltipTemplate>
+            </ScheduleEventSettings>
+            <ScheduleViews>
+                <ScheduleView Option="View.Day" DateFormat="dd-MMM-yyyy" Readonly="true" ></ScheduleView>
+                <ScheduleView Option="View.Week" DateFormat="dd-MMM-yyyy" Readonly="true"></ScheduleView>
+                <ScheduleView Option="View.Month" DateFormat="dd-MMM-yyyy" Readonly="true"></ScheduleView>
+                <ScheduleView Option="View.Agenda" DateFormat="dd-MMM-yyyy" Readonly="true"></ScheduleView>
+                <ScheduleView Option="View.TimelineYear" DateFormat="dd-MMM-yyyy" Readonly="true"></ScheduleView>
+            </ScheduleViews>
+        </SfSchedule>
+    </div>
+</div>
+<FormularioTomas @ref="FormularioRef" Tratam="@TratamientoEdit"></FormularioTomas>
+
+@inject DbQry DbQry
+@code{
+    #region Variables
+    private List<Tratamiento> MisTratamientosUnicos = new();
+    private List<Tratamiento> TratamientosGroup = new();
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; }
+    private List<AppointmentData> Appointments = new();
+    FormularioTomas FormularioRef;
+    private Tratamiento TratamientoEdit;
+    private string UsuarioId;
+    public PerfilUsuario Perfil = new();
+    public Guid PacienteSeleccionado;
+    public List<Paciente> MisPacientes = new();
+    [Parameter] public ApplicationUser User { get; set; }
+    SfSchedule<AppointmentData> SCheduleRef;
+    DateTime CurrentDate = DateTime.Now;
+    private List<Medicamento> MisMedicamentos = new();
+    #endregion
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        FormularioRef.RefreshData += async (sender, args) => await OnCreated();
+    }
+
+    public async Task OnPrintToPDF()
+    {
+        await SCheduleRef.PrintAsync();
+    }
+
+    public async Task OnExportToIcs()
+    {
+        await SCheduleRef.ExportToICalendarAsync($"Calendario{DateTime.Now}");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var AuthState = await AuthenticationState;
+        var id = AuthState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (id == null) return;
+        UsuarioId = id;
+        Perfil = DbQry.First<PerfilUsuario>(t => t.IdAspNetUser == User.Id)!;
+        MisPacientes = DbQry.All<Paciente>(t => t.UidUsuarioGestor == Perfil!.UidPerfil).ToList();
+        MisPacientes.Insert(0, new Paciente { UidPaciente = Guid.Empty, Nombre = "Todos" });
+        
+        MisTratamientosUnicos = DbQry.All<Tratamiento>(t => t.UsuarioId == UsuarioId).DistinctBy(t => t.UidTomas).ToList();
+        TratamientosGroup = DbQry.All<Tratamiento>(t => t.UsuarioId == UsuarioId).ToList();
+        var uidsMedicamentos = TratamientosGroup.Select(t => t.UidMedicamento).Distinct().ToList();
+        MisMedicamentos = DbQry.All<Medicamento>(m => uidsMedicamentos.Contains(m.UidMedicamento)).ToList();
+
+        Appointments.Clear();
+
+        foreach (var tratamiento in MisTratamientosUnicos)
+        {
+
+            var appointment = await GenerarAppointment(tratamiento);
+            Appointments.Add(appointment);
+        }
+
+    }
+
+    private async Task ActionBeginDropDown()
+    {
+        if (PacienteSeleccionado == Guid.Empty)
+        {
+            MisTratamientosUnicos = DbQry.All<Tratamiento>(t => t.UsuarioId == UsuarioId).DistinctBy(t => t.UidTomas).ToList();
+        }
+        else MisTratamientosUnicos = DbQry.All<Tratamiento>(t => t.UsuarioId == UsuarioId &&
+                                                           t.UidPaciente == PacienteSeleccionado).DistinctBy(t => t.UidTomas).ToList();
+        Appointments.Clear();
+
+        foreach (var tratamiento in MisTratamientosUnicos)
+        {
+            var appointment = await GenerarAppointment(tratamiento);
+            Appointments.Add(appointment);
+        }
+        await SCheduleRef.RefreshAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnCreated()
+    {
+        MisTratamientosUnicos = DbQry.All<Tratamiento>(t => t.UsuarioId == UsuarioId).DistinctBy(t => t.UidTomas).ToList();
+        Appointments.Clear();
+
+        foreach (var tratamiento in MisTratamientosUnicos)
+        {
+            var appointment = await GenerarAppointment(tratamiento);
+            Appointments.Add(appointment);
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task OnPopupOpen(PopupOpenEventArgs<AppointmentData> args)
+    {
+        args.Cancel = true;
+    }
+
+    private async Task<AppointmentData> GenerarAppointment(Tratamiento tratamiento)
+    {
+        try
+        {
+
+            var app =  new AppointmentData
+            {
+                Id = Guid.NewGuid(),
+                Subject = tratamiento.Titulo,
+                Description = tratamiento.Descripcion,
+                StartTime = tratamiento.StartTime,
+                EndTime = tratamiento.StartTime.AddHours(1),
+                RecurrenceException = tratamiento.RecurrenceException,
+                RecurrenceRule = tratamiento.RecurrenceRule,
+                IsAllDay = false,
+                Color = tratamiento.Color,
+                UidTomas = tratamiento.UidTomas
+            };
+            return app;
+        }
+        catch (Exception ex)
+        {
+            //await Globals.ShowError(ex);
+            return new AppointmentData();
+        }
+    }
+
+    public async Task AsignacionColorAppointment(EventRenderedArgs<AppointmentData> args)
+    {
+        try
+        {
+            args.Cancel = true;
+            Dictionary<string, object> attributes = new Dictionary<string, object>();
+            attributes.Add("class", "badge rounded-pill");
+            attributes.Add("style", $"background-color: {args.Data.Color}; color: #fff");
+
+            args.Attributes = attributes;
+            
+        }
+        catch (Exception ex)
+        {
+            // Manejo de errores
+        }
+    }
+
+
+}
+
+<style>
+    .rounded-corner {
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+        border-radius: 0px;
+        overflow: hidden;
+        width: 100%;
+    }
+
+        .rounded-corner:hover {
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
+        }
+
+    /* Estilo para el input tipo buscador similar al de Google */
+    .buscador {
+        padding: 10px 30px 10px 10px !important; /* Ajusta el padding según necesidad */
+        border: 1px solid #ccc !important; /* Borde del input */
+        border-radius: 20px !important; /* Bordes redondeados */
+        box-sizing: border-box !important; /* Incluye el padding y el borde en el ancho total */
+        outline: none !important; /* Quita el contorno al hacer clic en el input */
+    }
+
+    .e-ddl.e-input-group .e-input-value, .e-ddl.e-input-group .e-input-value:focus {
+        font-family: inherit;
+        font-size: 14px;
+        height: auto;
+        margin: 0;
+        outline: none;
+        width: 100%;
+        padding-top: 7px;
+    }
+</style>

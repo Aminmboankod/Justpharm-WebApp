@@ -1,0 +1,131 @@
+﻿@using Justpharm.Library.Models.Medical
+@using Syncfusion.Blazor.Notifications
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Spinner
+<SfDialog @ref="Dialog" @bind-Visible="_visible" IsModal="@IsModal" Header="@Title" Width="@Width" Height="@Height" ShowCloseIcon="@ReadOnly" ZIndex="@ZIndex">
+    <DialogTemplates>
+        <Content>
+            <SfSpinner @ref="_spinner" Type="SpinnerType.Bootstrap5" ZIndex="9999" Label="Cargando..."></SfSpinner>
+            @ChildContent
+            <br/>
+            @if (!string.IsNullOrEmpty(_alertMsg))
+            {
+                <SfMessage Severity="MessageSeverity.Warning" Visible="true" ShowCloseIcon="true" ShowIcon="true">
+                    @_alertMsg
+                </SfMessage>
+            }
+        </Content>
+    </DialogTemplates>
+    @if (!ReadOnly)
+    {
+        <DialogButtons>
+            <DialogButton Content="@BtnDone" IsPrimary="true" OnClick="Done" Disabled="@_disableBtn" />
+            <DialogButton Content="@BtnCancel" OnClick="Cancel" Disabled="@_disableBtn"/>
+        </DialogButtons>
+    }
+</SfDialog>
+
+@code {
+    private bool _visible;
+    private bool _disableBtn;
+    private string _text = string.Empty;
+    private string _alertMsg = string.Empty;
+    private TaskCompletionSource<bool>? _tcs;
+    public SfDialog Dialog;
+    private SfSpinner _spinner;
+
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+    [Parameter] public string BtnDone { get; set; } = "Aceptar";
+    [Parameter] public string BtnCancel { get; set; } = "Cancelar";
+    [Parameter] public EventCallback<BeginActionArgs> BeginAction { get; set; }
+    [Parameter]
+    public string Width { get; set; } = "800px";
+    [Parameter]
+    public string Height { get; set; } = "500px";
+    [Parameter]
+    public bool ReadOnly { get; set; } = false;
+
+    [Parameter]
+    public bool IsModal { get; set; } = true;
+
+    [Parameter] public double ZIndex { get; set; } = 9000;
+
+    public bool IsVisible => _visible;
+
+    public enum Action
+    {
+        Done, Cancel
+    }
+    
+    public class BeginActionArgs
+    {
+        public bool Cancel { get; set; } = false;
+        public Action ActionType { get; set; } = Action.Done;
+        public string CancelMessage { get; set; } = string.Empty;
+    }
+    
+    public async void Done()
+    {
+        if (_disableBtn) return;
+        if (BeginAction.HasDelegate)
+        {
+            var args = new BeginActionArgs();
+            await BeginAction.InvokeAsync(args);
+            if (args.Cancel)
+            {
+                _alertMsg = args.CancelMessage;
+                return;
+            }
+        }
+        _disableBtn = true;
+        await InvokeAsync(StateHasChanged);
+        _visible = false;
+        await _spinner.ShowAsync();
+        _tcs?.TrySetResult(true);
+        await _spinner.HideAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async void Cancel()
+    {
+        if (_disableBtn) return;
+        if (BeginAction.HasDelegate)
+        {
+            var args = new BeginActionArgs { ActionType = Action.Cancel };
+            await BeginAction.InvokeAsync(args);
+            if (args.Cancel)
+            {
+                _alertMsg = args.CancelMessage;
+                return;
+            }
+        }
+        _disableBtn = true;
+        await InvokeAsync(StateHasChanged);
+        _visible = false;
+        await _spinner.ShowAsync();
+        await InvokeAsync(StateHasChanged);
+        _tcs?.TrySetResult(false);
+        await _spinner.HideAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    public Task<bool> Show()
+    {
+        _disableBtn = false;
+        _visible = true;
+        InvokeAsync(StateHasChanged);
+        _tcs = new TaskCompletionSource<bool>();
+        return _tcs.Task;
+    }
+
+    public async Task Hide()
+    {
+        _visible = false;
+        await _spinner.HideAsync();
+        await InvokeAsync(StateHasChanged);
+        _tcs?.TrySetResult(false);
+    }
+}

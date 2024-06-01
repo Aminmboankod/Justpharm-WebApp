@@ -1,0 +1,161 @@
+﻿@page "/Account/Perfil"
+@using Blazored.FluentValidation
+@using Justpharm.Web.Repository
+@using Microsoft.AspNetCore.Identity
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.DataForm
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Notifications
+@using Justpharm.Web.Components.Shared.Perfil
+@using Justpharm.Web.Data
+@using Justpharm.Web.Models
+@using System.Security.Claims
+@using Syncfusion.Blazor.Notifications
+@using System.ComponentModel.DataAnnotations
+@inject UserManager<ApplicationUser> UserManager
+@inject ILogger<Login> Logger
+<PageTitle>Información personal</PageTitle>
+<div class="col-lg-12 control-section msg-default-section">
+    <div class="content-section">
+        <SfMessage Severity="MessageSeverity.Warning">
+            <p>Debes completar tu información personal antes de continuar.</p>
+            <p>Si quieres conocer nuestra política de privacidad y como tratamos sus datos personales <a href="/avisolegal" target="_blank">pulse aquí</a> </p>
+        </SfMessage>
+    </div>
+</div>
+<PageTitle>Justpharm | Inicio de sesión</PageTitle>
+
+<div class="container" style="text-align: center; width:400px">
+    <div class="row align-content-center">
+        <div class="navbar-brand">
+            <img src="logo.svg" width="150px" />
+        </div>
+        <div class="row-md-6">
+            <h1>Perfil en la aplicación</h1>
+            <section>
+                <EditForm Model="NewPerfilUsuario"  OnValidSubmit="HandleSubmit" FormName="PerfilUsuario">
+
+                    <hr />
+                    <div class="form-floating mb-3">
+                        <InputText Value="@NewPerfilUsuario.Nombre" class="form-control" aria-required="true"/>
+                        <label for="email" class="form-label">Nombre</label>
+                        <ValidationMessage For="() => NewPerfilUsuario.Nombre" class="text-danger" />
+                    </div>
+                    <div class="form-floating mb-3">
+                        <InputSelect Value="@NewPerfilUsuario.UidMaestroPerfil" class="form-control" aria-required="true" >
+                            @foreach (var maestroPerfil in Statics.MaestroPerfiles)
+                            {
+                                <option value="@maestroPerfil.UidMaestroPerfil">@maestroPerfil.Tipo</option>
+                            }
+                        </InputSelect>
+                        <label for="email" class="form-label">Perfil</label>
+                        <ValidationMessage For="() => NewPerfilUsuario.UidMaestroPerfil" class="text-danger" />
+                    </div>
+                    <div style="font-size:15px">
+                        <SfButton IsPrimary="true" IconCss="bi bi-box-arrow-in-right" type="submit" class="w-100 btn btn-lg btn-primary">Guardar</SfButton>
+                    </div>
+                </EditForm>
+            </section>
+        </div>
+    </div>
+</div>
+
+<BaseComponent @ref="BaseRef" />
+
+
+@inject DbQry db
+@inject IdentityRedirectManager RedirectManager
+@code {
+    EditContext UserEditContext { get; set; }
+    FluentValidationValidator? fluentValidator { get; set; }
+    public PerfilUsuario NewPerfilUsuario { get; set; } = new PerfilUsuario();
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; }
+    public AuthenticationState AuthState { get; private set; }
+    public List<_MaestroPerfil> MaestroPerfiles = Statics.MaestroPerfiles;
+    public BaseComponent BaseRef;
+    public ApplicationUser User;
+    public _MaestroPerfil NewMaestroPerfil = new _MaestroPerfil();
+    private string? errorMessage;
+    [SupplyParameterFromForm]
+    private PerfilUsuario Input { get; set; } = new();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            MaestroPerfiles = db.All<_MaestroPerfil>().ToList();
+            UserEditContext = new EditContext(NewPerfilUsuario);
+            AuthState = await AuthenticationState;
+            var id = AuthState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (id == null) return;
+
+            User = await UserManager.FindByIdAsync(id);
+
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+    }
+
+
+    public async Task<bool> SubmitFormAsync()
+    {
+        if (await fluentValidator!.ValidateAsync())
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+
+            NewPerfilUsuario.IdAspNetUser = User.Id;
+            NewPerfilUsuario.UidMaestroPerfil = NewMaestroPerfil.UidMaestroPerfil;
+            await UserManager.UpdateAsync(User);
+            db.Insert(NewPerfilUsuario);
+            RedirectManager.RedirectTo("/");
+            
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al guardar el perfil del usuario");
+            await BaseRef.ShowError(ex);
+        }
+    }
+}
+
+<style>
+    .msg-default-section .content-section {
+        margin: 0 auto;
+        max-width: 520px;
+        padding-top: 10px;
+        font-size: 24px;
+    }
+
+    .msg-default-section .e-message {
+        margin: 10px 0;
+        font-size: 24px;
+    }
+
+    .mobile .control-wrapper {
+        max-width: 100%;
+    }
+
+    .control-wrapper {
+        max-width: 50%;
+        margin: 0 auto;
+        padding: 0px 0px 0px;
+    }
+
+    .control-header {
+        text-align: center;
+    }
+</style>

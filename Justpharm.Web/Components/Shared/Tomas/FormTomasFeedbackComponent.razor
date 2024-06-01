@@ -1,0 +1,133 @@
+﻿@using Justpharm.Library.Models.Medical
+@using Justpharm.Web.Components.Shared.Farmacos
+@using Justpharm.Web.Data
+@using Justpharm.Web.Repository
+@using Justpharm.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Calendars
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Inputs
+@using Justpharm.Web.Models
+@using Syncfusion.Blazor.Schedule
+@using System.Security.Claims
+
+<DialogoModal @ref="dialogModal" Title="Informa del estado de la siguiente toma" BtnDone="Guardar" Height="750px" Width="600px">
+
+    <EditForm Model="@Toma" >
+        <DataAnnotationsValidator />
+        <div class="row" style="padding:30px">
+            <div class="col">
+                <div class="form-group">
+                    @{
+                        var ctx = Toma;
+                        var medicamento = Qry.First<Medicamento>(t => t.UidMedicamento == ctx.UidMedicamento);
+
+                        @if (medicamento != null)
+                        {
+                            <div style="text-align:center">
+                                <h5>@medicamento.Nombre</h5>
+                                <p>@medicamento.Laboratorio</p>
+                                <img src="@medicamento.Imagen" width="310px" alt="@medicamento.Nombre" />
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="form-group">
+                    <SfTextBox Enabled="false" Placeholder="Titulo del tratamiento" FloatLabelType="FloatLabelType.Always" @bind-Value="@Toma.Titulo" />
+                    <ValidationMessage For="@(() => Toma.Titulo)" />
+                </div>
+                <div class="form-group">
+                    <SfDateTimePicker Enabled="false" Placeholder="Fecha y hora de la toma" TValue="DateTime" FloatLabelType="FloatLabelType.Always" @bind-Value="@Toma.StartTime" />
+                    <ValidationMessage For="@(() => Toma.StartTime)"></ValidationMessage>
+                </div>
+                <div class="form-group" style="padding-30px">
+                    <label>Estado antes de la toma:</label>
+                    <SfRating @bind-Value="@Toma.Estado" ShowLabel=true>
+                    </SfRating>
+                </div>
+
+                <div class="form-group">
+                    <SfTextBox Multiline="true" Placeholder="Observaciones" FloatLabelType="FloatLabelType.Always" @bind-Value="@Toma.Descripcion" />
+                </div>
+            </div>
+        </div>
+    </EditForm>
+</DialogoModal>
+
+<BaseComponent @ref="BaseRef"></BaseComponent>
+@inject DbQry Qry
+@inject UserManager<ApplicationUser> userManager
+
+@code {
+
+    #region Variables
+    [CascadingParameter] 
+    private Task<AuthenticationState> AuthenticationState { get; set; }
+    public string UserId { get; private set; }
+    public AuthenticationState AuthState { get; private set; }
+    private ApplicationUser User = new();
+
+
+    public DialogoModal dialogModal;
+    public BaseComponent BaseRef;
+
+    [Parameter] 
+    public Toma Toma { get; set; } = new();
+
+    public event EventHandler RefreshData;
+    #endregion
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+
+            AuthState = await AuthenticationState;
+            var id = AuthState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (id == null) return;
+            UserId = id;
+
+            User = await userManager.FindByIdAsync(UserId);
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+    }
+
+    private async Task AsignarValoresEdicion()
+    {
+        try
+        {
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+    }
+    public async Task Clic()
+    {
+        try
+        {
+            // Mostrar el dialogo
+            if (await dialogModal.Show()) // Se ha pulsado guardar
+            {
+
+                Qry.Update(Toma);
+                await BaseRef.ShowSuccess("Toma editada correctamente");
+
+            }
+            else
+            {
+                // Se ha pulsado cancelar
+            }
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+    }
+}

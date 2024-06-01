@@ -1,0 +1,106 @@
+﻿@page "/Account/Manage/TwoFactorAuthentication"
+
+@using Microsoft.AspNetCore.Http.Features
+@using Microsoft.AspNetCore.Identity
+@using Justpharm.Web.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Justpharm | (2FA)</PageTitle>
+
+<StatusMessage />
+<h3>Doble autenticación (2FA)</h3>
+<div class="container">
+@if (canTrack)
+{
+    if (is2faEnabled)
+    {
+        if (recoveryCodesLeft == 0)
+        {
+            <div class="alert alert-danger">
+                <strong>No te quedan códigos de recuperación.</strong>
+                <p>Debes <a href="Account/Manage/GenerateRecoveryCodes">generar un nuevo conjunto de códigos de recuperación</a> antes de poder iniciar sesión con un código de recuperación.</p>
+            </div>
+        }
+        else if (recoveryCodesLeft == 1)
+        {
+            <div class="alert alert-danger">
+                <strong>Te queda 1 código de recuperación.</strong>
+                <p>Puedes <a href="Account/Manage/GenerateRecoveryCodes">generar un nuevo conjunto de códigos de recuperación</a>.</p>
+            </div>
+        }
+        else if (recoveryCodesLeft <= 3)
+        {
+            <div class="alert alert-warning">
+                <strong>Te quedan @recoveryCodesLeft códigos de recuperación.</strong>
+                <p>Deberías <a href="Account/Manage/GenerateRecoveryCodes">generar un nuevo conjunto de códigos de recuperación</a>.</p>
+            </div>
+        }
+
+        if (isMachineRemembered)
+        {
+            <form style="display: inline-block" @formname="forget-browser" @onsubmit="OnSubmitForgetBrowserAsync" method="post">
+                <AntiforgeryToken />
+                <button type="submit" class="btn btn-primary">Olvidar este navegador</button>
+            </form>
+        }
+        <div class="col">
+        <a href="Account/Manage/Disable2fa" class="btn btn-primary">Desactivar 2FA</a>
+        <a href="Account/Manage/GenerateRecoveryCodes" class="btn btn-primary">Restablecer códigos de recuperación</a>
+        </div>
+    }
+    <div class="col">
+    @if (!hasAuthenticator)
+    {
+        <a href="Account/Manage/EnableAuthenticator" class="btn btn-primary">Agregar aplicación de autenticación</a>
+    }
+    else
+    {
+        <div class="d-inline-block p-3" >
+        <a href="Account/Manage/EnableAuthenticator" class="btn btn-primary">Configurar 2FA</a>
+        <a href="Account/Manage/ResetAuthenticator" class="btn btn-primary">Restablecer 2FA</a>
+        </div>
+    }
+    </div>
+}
+else
+{
+    <div class="alert alert-danger">
+        <strong>No se han aceptado las políticas de privacidad y cookies.</strong>
+        <p>Debes aceptar las políticas antes de poder habilitar la autenticación de dos factores.</p>
+    </div>
+}
+</div>
+
+@code {
+    private bool canTrack;
+    private bool hasAuthenticator;
+    private int recoveryCodesLeft;
+    private bool is2faEnabled;
+    private bool isMachineRemembered;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        canTrack = HttpContext.Features.Get<ITrackingConsentFeature>()?.CanTrack ?? true;
+        hasAuthenticator = await UserManager.GetAuthenticatorKeyAsync(user) is not null;
+        is2faEnabled = await UserManager.GetTwoFactorEnabledAsync(user);
+        isMachineRemembered = await SignInManager.IsTwoFactorClientRememberedAsync(user);
+        recoveryCodesLeft = await UserManager.CountRecoveryCodesAsync(user);
+    }
+
+    private async Task OnSubmitForgetBrowserAsync()
+    {
+        await SignInManager.ForgetTwoFactorClientAsync();
+
+        RedirectManager.RedirectToCurrentPageWithStatus(
+            "El navegador actual ha sido olvidado. Cuando vuelvas a iniciar sesión desde este navegador, se te solicitará tu código de autenticación de dos factores (2FA).",
+            HttpContext);
+    }
+}

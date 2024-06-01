@@ -1,0 +1,63 @@
+﻿
+@using Justpharm.Library.Models.Medical
+@using Justpharm.Web.Data
+@using Justpharm.Web.Services
+@using Syncfusion.Blazor.Grids
+
+@inject HttpClient Http
+
+<div class="content-wrapper">
+    <div class="container">
+        <SfGrid @ref="Grid" TValue="CimaResponse" DataSource="@Medicamentos" @rendermode="@InteractiveServer">
+            <GridPageSettings PageCount="5"></GridPageSettings>
+            <GridColumns>
+                <GridColumn AutoFit="true" Field="@nameof(CimaResponse.NRegistro)"></GridColumn>
+                <GridColumn AutoFit="true" Field="@nameof(CimaResponse.Nombre)"></GridColumn>
+                <GridColumn AutoFit="true" Field="@nameof(CimaResponse.LabTitular)"></GridColumn>
+                <GridColumn AutoFit="true" Field="@nameof(CimaResponse.CPresc)"></GridColumn>
+                <GridColumn AutoFit="true" Field="@nameof(CimaResponse.Dosis)"></GridColumn>
+            </GridColumns>
+        </SfGrid>
+    </div>
+</div>
+
+
+@* @inherits BaseComponent *@
+
+@code {
+    private List<CimaResponse>? Medicamentos { get; set; } = [];
+    SfGrid<CimaResponse>? Grid { get; set; }
+    private CimaRestApi? CimaRestApi { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            //await Globals.ShowError(ex)!;
+        }
+    }
+    private async Task LoadData()
+    {
+        try
+        {
+            //await Globals.Spinner.ShowAsync();
+            await Task.Run( async () =>
+            {
+                Medicamentos = await CimaRestApi.GetMedicamentos()!;
+                await InvokeAsync(StateHasChanged);
+            });
+            //await Globals.Spinner.HideAsync();
+        }
+        catch (Exception e)
+        {
+            //await Globals.Spinner.HideAsync();
+            //await Globals.ShowError(e)!;
+        }
+    }
+
+
+}

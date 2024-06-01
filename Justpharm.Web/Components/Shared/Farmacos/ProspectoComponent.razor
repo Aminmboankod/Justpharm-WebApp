@@ -1,0 +1,36 @@
+﻿
+<DialogoModal @ref="DialogRef" Title="Ficha técnica" Height="800px" >
+   <embed src="@PDfContent" width="100%" height="100%">
+</DialogoModal>
+<BaseComponent @ref="BaseRef"></BaseComponent>
+@code{
+    [Parameter] public string PdfUrl { get; set; }
+    private readonly string googlePdfUrl = "https://drive.google.com/viewerng/viewer?embedded=true&url=";
+    private string PDfContent { get; set; }
+    public DialogoModal DialogRef;
+    public BaseComponent BaseRef;
+
+
+
+    public async Task Clic()
+    {
+        await InvokeAsync(StateHasChanged);
+
+        if (PdfUrl == null || PdfUrl == "")
+        {
+            await BaseRef.ShowInfo("No hay ficha técnica disponible");
+            await DialogRef.Hide();
+            return;
+        }
+        PDfContent = googlePdfUrl + PdfUrl;
+        await InvokeAsync(StateHasChanged);
+        // Mostrar el dialogo
+        if (await DialogRef.Show())
+        {
+        }
+        else
+        {
+            // Se ha pulsado cancelar
+        }
+    }
+}

@@ -1,0 +1,154 @@
+﻿@using Justpharm.Web.Data
+@using Justpharm.Web.Models
+@using Syncfusion.Blazor.FileManager
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.RichTextEditor
+
+<Syncfusion.Blazor.Buttons.SfButton @onclick="CrearNuevoInforme">Crear Informe</Syncfusion.Blazor.Buttons.SfButton>
+<Syncfusion.Blazor.Buttons.SfButton @onclick="VerInformes">Ver Informes</Syncfusion.Blazor.Buttons.SfButton>
+<Syncfusion.Blazor.Buttons.SfButton @onclick="CargarNuevoInforme">Cargar Informe</Syncfusion.Blazor.Buttons.SfButton>
+@if (VerINFORMES)
+{
+    <div class="rounded-corner">
+        <SfGrid DataSource="@informes" AllowPaging="true">
+            <GridEvents TValue="Informe" CommandClicked="OnCommandClicked"></GridEvents>
+            <GridColumns>
+                <GridColumn Field=@nameof(Informe.Fecha) HeaderText="Fecha"></GridColumn>
+                <GridColumn Field=@nameof(Informe.Contenido) HeaderText="Contenido"></GridColumn>
+            </GridColumns>
+            <GridColumn AutoFit="true" >
+                <GridCommandColumns>
+                    <GridCommandColumn Type="CommandButtonType.Edit" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-edit", CssClass = "e-flat e-success" })"></GridCommandColumn>
+                </GridCommandColumns>
+            </GridColumn>
+        </SfGrid>
+    </div>
+}
+
+@if (informeSeleccionado != null)
+{
+    <InformeComponent Informe="informeSeleccionado" />
+}
+else if (modoCrear)
+{
+    <InformeComponent OnGuardar="@GuardarNuevoInforme" />
+}
+else if (cargar)
+{
+    <SfFileManager TValue="FileManagerDirectoryContent">
+        <FileManagerAjaxSettings Url="https://ej2-aspcore-service.azurewebsites.net/api/FileManager/FileOperations"
+                                 UploadUrl="https://ej2-aspcore-service.azurewebsites.net/api/FileManager/Upload"
+                                 DownloadUrl="https://ej2-aspcore-service.azurewebsites.net/api/FileManager/Download"
+                                 GetImageUrl="https://ej2-aspcore-service.azurewebsites.net/api/FileManager/GetImage">
+        </FileManagerAjaxSettings>
+    </SfFileManager>
+}
+@code {
+    private List<Informe> informes = new List<Informe>
+    {
+        new Informe { Fecha = DateTime.Now, Contenido = "Informe Dr. Albatos - Curas espalda" },
+        new Informe { Fecha = DateTime.Now.AddDays(-1), Contenido = "Informe Dra. Cristina - Revisión" }
+    };
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+    public PerfilUsuario Perfil = new();
+    [Parameter] public ApplicationUser User { get; set; }
+    private Informe? informeSeleccionado = null;
+    private bool modoCrear = false;
+    private bool VerINFORMES = true;
+    private bool cargar = false;
+
+
+
+    private void SeleccionarInforme(Informe informe)
+    {
+        informeSeleccionado = informe;
+        modoCrear = false;
+        VerINFORMES = false;
+    }
+
+    private void VerInformes()
+    {
+        cargar = false;
+        modoCrear = false;
+        VerINFORMES = !VerINFORMES;
+    }
+
+    private void CrearNuevoInforme()
+    {
+        cargar = false;
+        informeSeleccionado = null;
+        modoCrear = !modoCrear;
+        VerINFORMES = false;
+    }
+
+    private void CargarNuevoInforme()
+    {
+        modoCrear = false;
+        VerINFORMES = false;
+        cargar = true;
+
+    }
+
+    public async Task OnCommandClicked(CommandClickEventArgs<Informe> args)
+    {
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Edit))
+        {
+            SeleccionarInforme(args.RowData);
+        }
+    }
+
+    private void GuardarNuevoInforme(Informe nuevoInforme)
+    {
+        informes.Add(nuevoInforme);
+        modoCrear = false;
+        informeSeleccionado = nuevoInforme;
+    }
+
+    public class Informe
+    {
+        public DateTime Fecha { get; set; }
+        public string Contenido { get; set; } = string.Empty;
+    }
+}
+<style>
+    .switch-personalizado {
+        width: 90px;
+    }
+
+
+    .rounded-corner {
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+        border-radius: 25px;
+        overflow: hidden;
+        width: 100%;
+    }
+
+        .rounded-corner:hover {
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
+        }
+
+    /* Estilo para el input tipo buscador similar al de Google */
+    .buscador {
+        padding: 10px 30px 10px 10px !important; /* Ajusta el padding según necesidad */
+        border: 1px solid #ccc !important; /* Borde del input */
+        border-radius: 20px !important; /* Bordes redondeados */
+        box-sizing: border-box !important; /* Incluye el padding y el borde en el ancho total */
+        outline: none !important; /* Quita el contorno al hacer clic en el input */
+    }
+
+    .e-ddl.e-input-group .e-input-value, .e-ddl.e-input-group .e-input-value:focus {
+        font-family: inherit;
+        font-size: 14px;
+        height: auto;
+        margin: 0;
+        outline: none;
+        width: 100%;
+        padding-top: 7px;
+    }
+
+    .cloud-slider {
+        display: block;
+        position: relative;
+    }
+
+</style>

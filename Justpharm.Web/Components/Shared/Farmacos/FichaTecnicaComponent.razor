@@ -1,0 +1,41 @@
+﻿
+<DialogoModal @ref="DialogRef" Title="Ficha técnica" Height="100%" Width="100%">
+    @if (!string.IsNullOrEmpty(Html))
+    {
+        <div class="container">@htmlContent</div>
+    }
+    else
+    {
+        <p>No se pudo cargar la ficha técnica.</p>
+    }
+</DialogoModal>
+<BaseComponent @ref="BaseRef"></BaseComponent>
+@code {
+    [Parameter] public string Html { get; set; }
+    public DialogoModal DialogRef;
+    public BaseComponent BaseRef;
+    private MarkupString htmlContent;
+
+
+    public async Task Clic()
+    {
+        htmlContent = new MarkupString(Html);
+        await InvokeAsync(StateHasChanged);
+
+        if (Html == null || Html == "")
+        {
+            await BaseRef.ShowInfo("No hay ficha técnica disponible");
+            await DialogRef.Hide();
+            return;
+        }
+        await InvokeAsync(StateHasChanged);
+        // Mostrar el dialogo
+        if (await DialogRef.Show())
+        {
+        }
+        else
+        {
+            // Se ha pulsado cancelar
+        }
+    }
+}

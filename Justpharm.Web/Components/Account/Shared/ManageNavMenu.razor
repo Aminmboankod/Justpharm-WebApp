@@ -1,0 +1,46 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using Justpharm.Web.Data
+
+@inject SignInManager<ApplicationUser> SignInManager
+
+<ul class="nav nav-pills flex-column">
+    <li class="nav-item">
+        <NavLink class="nav-link" href="Account/Manage" Match="NavLinkMatch.All"> <i class="bi bi-person-circle"></i> Mi perfil</NavLink>
+    </li>
+    <li class="nav-item">
+        <NavLink class="nav-link" href="Account/Manage/Email"><i class="bi bi-envelope"></i> Email</NavLink>
+    </li>
+    <li class="nav-item">
+        <NavLink class="nav-link" href="Account/Manage/ChangePassword"><i class="bi bi-shield-lock"></i> Contraseña</NavLink>
+    </li>
+    @if (hasExternalLogins)
+    {
+        <li class="nav-item">
+            <NavLink class="nav-link" href="Account/Manage/ExternalLogins">Cuenta externa</NavLink>
+        </li>
+    }
+    <li class="nav-item">
+        <NavLink class="nav-link" href="Account/Manage/TwoFactorAuthentication"><i class="bi bi-key"></i> Autenticación de doble factor</NavLink>
+    </li>
+    <li class="nav-item">
+        <NavLink class="nav-link" href="Account/Manage/PersonalData"><i class="bi bi-file-earmark-person"></i> Datos personales</NavLink>
+    </li>
+</ul>
+
+@code {
+    private bool hasExternalLogins;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any();
+    }
+}
+
+<style>
+    .nav-link {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+    }
+</style>

@@ -1,0 +1,271 @@
+﻿@using Justpharm.Library.Models.Medical
+@using System.Globalization
+@using Justpharm.Web.Components.Shared.Tratamientos
+@using Justpharm.Web.Models
+@using Justpharm.Web.Services
+@using Syncfusion.Blazor.Cards
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.DataForm
+@using System.ComponentModel.DataAnnotations
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.SfPdfViewer
+@rendermode InteractiveServer
+@inject IJSRuntime jsRuntime
+
+
+<DialogoModal @ref="dialogModal" Title="Información del fármaco" BtnDone="Aceptar" Height="800px" Width="800px" >
+    <SfCard  Orientation="CardOrientation.Vertical" CssClass="" >
+    <CardHeader Title="@(Medicine.Nombre)" SubTitle="@(Medicine.LabTitular)" />
+    <CardContent EnableSeparator="true">
+        <div class="row" style="padding:50px">
+            <div class="col-5">
+                <SfCarousel CssClass="default-carousel">
+                    @if (Medicine.Fotos != null)
+                    {
+                        foreach (var foto in Medicine.Fotos)
+                        {
+                            <CarouselItem>
+                                <figure class="img-container">
+                                    <img src="@foto.Url" alt="@(Medicine.Nombre)" style="height:100%;width:100%;" />
+                                </figure>
+                            </CarouselItem>
+                        }
+                    }
+                </SfCarousel>
+            </div>
+            <div class="col" style="text-align:left;padding:50px;font-size:12px">
+                <div><b>CN:</b> @Medicine.NRegistro</div>
+                <div><b>Vía Administración:</b> @Medicine.ViasAdministracion.FirstOrDefault().Nombre</div>
+                <div><b>Forma Farmacéutica:</b> @Medicine.FormaFarmaceuticaSimplificada.Nombre</div>
+                <div><b>Dosis:</b> @Medicine.Dosis</div>
+                <div>
+                    @if(Medicine.Generico) 
+                    {
+                        <b>Genérico:</b> <span class="badge rounded-pill bg-success">Si</span>
+                    }
+                    else
+                    {
+                        <b>Genérico:</b> <span class="badge rounded-pill bg-danger">No</span>
+                    }
+                </div>
+                <div>
+                    @if (Medicine.Receta)
+                    {
+                        <b>Receta:</b> <span class="badge rounded-pill bg-success">Si</span>
+                    }
+                    else
+                    {
+                        <b>Receta:</b> <span class="badge rounded-pill bg-danger">No</span>
+                    }
+                </div>
+                <div>
+                    <b>Prescripción:</b> @Medicine.CPresc 
+                </div>
+            </div>
+        </div>
+    </CardContent>
+    <CardContent EnableSeparator="true" ></CardContent>
+    <CardFooter>
+        <CardFooterContent >
+            <div style="text-align:right" >
+                @if (Medicine.Docs.Count > 0)
+                {
+                    <SfButton IsPrimary="true" IconCss="bi bi-info-lg" @onclick="@ExpandHandler">@GetDocTypeText(Medicine.Docs!.FirstOrDefault()!.Tipo)</SfButton>
+                }
+                @if (!string.IsNullOrEmpty(HtmlFT))
+                {
+                    <SfButton  CssClass="btn-outline-primary" IconCss="bi bi-file-earmark-text" @onclick="@FichaTecHTML">Prospecto</SfButton>
+                }
+            </div>
+        </CardFooterContent>
+    </CardFooter>
+</SfCard>
+</DialogoModal>
+
+    @if (Medicine.Docs.Count > 0)
+    {
+        <ProspectoComponent @ref="ProspectoRef" PdfUrl="@Medicine.Docs.FirstOrDefault().Url" ></ProspectoComponent>
+    }
+    <FichaTecnicaComponent @ref="FichaTecRef" Html="@HtmlFT"></FichaTecnicaComponent>
+    <BaseComponent @ref="BaseRef"></BaseComponent>
+}
+<style>
+    .mobile .control-wrapper
+    {
+        max-width: 100%;
+    }
+    .control-wrapper {
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 0px 0px 0px;
+    }
+    .control-header{
+        text-align:center;
+    }
+</style>
+
+@code {
+    
+    DialogoModal dialogModal;
+    [Parameter] public CimaResponse Medicine { get; set; }
+    public FormularioTomas FormTomas { get; set; }
+    public BaseComponent BaseRef;
+    public ProspectoComponent ProspectoRef;
+    public FichaTecnicaComponent FichaTecRef;
+    public event EventHandler RefreshData;
+    bool Expand = false;
+    bool eventoTomas = false;
+    public ElementReference pdfelement;
+    public string HtmlFT { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // try
+        // {
+        //     FormTomas.RefreshData += RefreshData;
+        // }
+        // catch (Exception ex)
+        // {
+        //     await BaseRef.ShowError(ex);
+        // }
+    }
+
+    public async Task Clic()
+    {
+        try
+        {
+            // Mostrar el dialogo
+            if (await dialogModal.Show()) // Se ha pulsado guardar
+            {
+
+
+            }
+            else
+            {
+                // Se ha pulsado cancelar
+            }
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+    }
+
+    private string GetEstadoText()
+    {
+        return Medicine.Estado.Aut != 0 ? "Autorizado" : "No autorizado";
+    }
+    private string GetFormattedDate(long timestamp)
+    {
+        return DateTimeOffset.FromUnixTimeMilliseconds(timestamp).ToLocalTime().ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+    }
+    private string GetYesNoText(bool value)
+    {
+        return value ? "Sí" : "No";
+    }
+    private string GetDocTypeText(int type)
+    {
+        return type == 1 ? "Ficha Técnica" : "Prospecto";
+    }
+    public async Task ExpandHandler()
+    {
+        try
+        {
+            await ProspectoRef.Clic();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }   
+    }
+    public async Task AddTomas()
+    {
+        try
+        {
+            await FormTomas.Clic();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+    }
+    public async Task FichaTecHTML()
+    {
+        try
+        {
+            HtmlFT = await CimaRestApi.GetFichaTecnicaHTML(Medicine.NRegistro);
+            await InvokeAsync(StateHasChanged);
+
+            HtmlFT = await CimaRestApi.GetFichaTecnicaHTML(Medicine.NRegistro);
+
+            await FichaTecRef.Clic();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await BaseRef.ShowError(ex);
+        }
+    }
+}
+<style>
+    .DayContent:focus {
+        outline: solid 1px black;
+        border-radius: 5px;    
+    }
+    .fluent-dark .DayContent:focus,
+    .fabric-dark .DayContent:focus,
+    .material-dark .DayContent:focus,
+    .material3-dark .DayContent:focus,
+    .bootstrap-dark .DayContent:focus,
+    .bootstrap5-dark .DayContent:focus,
+    .tailwind-dark .DayContent:focus,
+    .highcontrast .DayContent:focus {
+        outline: solid 1px #8a8886;
+        border-radius: 5px;
+    }
+    .WeekDay {
+        padding-left: 7px;
+    }
+    .TempClass {
+        font-size: 30px;
+    }
+    .TempImage {
+        background-image: url(https://ej2.syncfusion.com/demos/src/chart/images/sunny.png);
+        height: 40px;
+        width: 40px;
+    }
+    .e-card .e-card-header .e-card-header-caption .e-card-header-title {
+        font-size: 25px;
+        line-height: 32px;
+    }
+    .e-card .e-card-header .e-card-header-caption .e-card-sub-title {
+        font-size: 16px;
+        line-height: 20px;
+    }
+    .e-card .e-card-content {
+        padding-top: 0px;
+    }
+    .RainText {
+        color: blue;
+    }
+    .RainImage {
+        height: 20px;
+        width: 20px;
+        background-image: url(https://ej2.syncfusion.com/demos/src/chart/images/cloud.png);
+    }
+    .e-card-layout {
+        display: flex;
+        margin: auto;
+        justify-content: center;
+        align-items: center;
+    }
+    table {
+        width: 100%;
+    }
+    .TextCenter {
+        text-align: center;
+    }
+</style>
+

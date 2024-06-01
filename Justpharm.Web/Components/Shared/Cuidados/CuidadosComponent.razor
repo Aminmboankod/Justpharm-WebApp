@@ -1,0 +1,477 @@
+﻿@using Justpharm.Web.Components.Shared.Farmacos
+@using Justpharm.Web.Components.Shared.Perfil
+@using Justpharm.Web.Components.Shared.Tratamientos
+@using Justpharm.Web.Data
+@using Justpharm.Web.Data.Appointments
+@using Justpharm.Web.Models
+@using Justpharm.Web.Repository
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Inputs
+@using System.Security.Claims
+<br />
+@* EventRendered="AsignacionColorAppointment" *@
+<div class="container-fluid">
+    <div class="col-12" style="padding-bottom:20px">
+        <h5 style="text-align:center">Seleccione un paciente</h5>
+        <div style="margin-bottom:15px">
+        <SfDropDownList TValue="Guid" CssClass="buscador" FloatLabelType="FloatLabelType.Always" TItem="Paciente" Enabled="true" DataSource="@MisPacientes" AllowFiltering="true" 
+            FilterType="Syncfusion.Blazor.DropDowns.FilterType.Contains" @bind-Value="@PacienteSeleccionado">
+            <DropDownListFieldSettings Text="@nameof(Paciente.Nombre)" Value="@nameof(Paciente.UidPaciente)"></DropDownListFieldSettings>
+            <DropDownListEvents TItem="Paciente" TValue="Guid" ValueChange="ActionBeginDropDown"></DropDownListEvents>
+            <DropDownListTemplates TItem="Paciente">
+                <ItemTemplate>
+                    <span style="font-size:15px; padding-left:18px"><span class='name'>@((context as Paciente).Nombre) @((context as Paciente).Apellidos)</span><span class='country'>@((context as Paciente).DNI)</span></span>
+                </ItemTemplate>
+                <ValueTemplate>
+                    <span style="font-size:15px; padding-left:18px; padding-top:10px">@((context as Paciente).Nombre) @((context as Paciente).Apellidos) @((context as Paciente).DNI)</span>
+                </ValueTemplate>
+            </DropDownListTemplates>
+        </SfDropDownList>
+        </div>
+
+        <div class="col-12 rounded-corner" style="background-color:white">
+            <SfGrid @ref="GridCuidados" DataSource="ListadoCuidados" Height="450px"
+                    AllowResizing="true"
+                    AllowReordering="false"
+                    AllowGrouping="true"
+                    ShowColumnMenu="false"
+                    AllowPaging="true"
+                    AllowSorting="true"
+                    AllowFiltering="true"
+                    AllowSelection="true"
+                    Toolbar="@(new string[] {"Print", "Search", "Registrar cuidado"})"
+                    ClipMode="ClipMode.EllipsisWithTooltip">
+                <GridGroupSettings Columns="@GroupedColumns"></GridGroupSettings>
+                <GridEvents TValue="Cuidado" OnToolbarClick="@OnToolbarClick" CommandClicked="@OnCommandClicked" OnActionComplete="@OnActionComplete" OnCellEdit="@OnCellEdit"></GridEvents>
+                <GridSearchSettings IgnoreCase="true" IgnoreAccent="true"></GridSearchSettings>
+                <GridEditSettings AllowAdding="true" AllowDeleting="true" AllowEditing="true" Mode="EditMode.Batch" AllowEditOnDblClick="true" ShowDeleteConfirmDialog="true" ShowConfirmDialog="true"></GridEditSettings>
+                <GridPageSettings PageSize="11"></GridPageSettings>
+                <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Menu" IgnoreAccent="true" EnableCaseSensitivity="false"></GridFilterSettings>
+                <GridTemplates>
+                    <DetailTemplate>
+                        @{
+                            var cuidado = (context as Cuidado);
+                            var paciente = MisPacientes.First<Paciente>(p => p.UidPaciente == cuidado!.UidPaciente);
+                            <table class="detailtable" width="100%">
+                                <colgroup>
+                                    <col width="25%">
+                                    <col width="25%">
+                                    <col width="25%">
+                                    <col width="25%">
+                                </colgroup>
+                                <tbody>
+                                    <tr>
+                                        <td><span style="font-weight: bold; color: black;">Fecha del Cuidado:</span></td>
+                                        <td>@cuidado.FechaCuidado.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td><span style="font-weight: bold; color: black;">Nombre del Cuidado:</span></td>
+                                        <td>@cuidado.Titulo</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span style="font-weight: bold; color: black;">Categoría del Cuidado:</span></td>
+                                        <td>@Statics.ListadoCuidadosCategoria.First(c => c.UidMaestroCuidados == cuidado.UidMaestroCuidados).TituloCuidado</td>
+                                        <td><span style="font-weight: bold; color: black;">Paciente:</span></td>
+                                        <td>
+                                            @if (paciente != null)
+                                            {
+                                                <span>@paciente.Nombre @paciente.Apellidos</span>
+                                            }
+                                            else
+                                            {
+                                                <span>No registrado</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    @if (paciente != null)
+                                    {
+                                        <tr>
+                                            <td><span style="font-weight: bold; color: black;">Edad:</span></td>
+                                            <td>@paciente.Edad</td>
+                                            <td><span style="font-weight: bold; color: black;">Altura:</span></td>
+                                            <td>@paciente.Altura cm</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span style="font-weight: bold; color: black;">Peso:</span></td>
+                                            <td>@paciente.Peso kg</td>
+                                            <td><span style="font-weight: bold; color: black;">Alergias:</span></td>
+                                            <td>@(paciente.Alergias == true ? "Sí" : "No")</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span style="font-weight: bold; color: black;">Enfermedad Crónica:</span></td>
+                                            <td>@(paciente.EnfermedadCronica == true ? "Sí" : "No")</td>
+                                            <td><span style="font-weight: bold; color: black;">Sexo:</span></td>
+                                            <td>@(paciente.SexoMasculino == true ? "Masculino" : "Femenino")</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span style="font-weight: bold; color: black;">DNI:</span></td>
+                                            <td>@paciente.DNI</td>
+                                            <td><span style="font-weight: bold; color: black;">Ubicación:</span></td>
+                                            <td>@paciente.Ubicacion</td>
+                                        </tr>
+                                        <tr>
+                                            <td><span style="font-weight: bold; color: black;">Fecha de Nacimiento:</span></td>
+                                            <td>@paciente.FechaNacimiento?.ToString("dd/MM/yyyy")</td>
+                                            <td><span style="font-weight: bold; color: black;">Profesional Asignado:</span></td>
+                                            <td>
+                                                @{
+                                                    var profesional = Perfil;
+                                                    if (profesional != null)
+                                                    {
+                                                        <span>@profesional.Nombre</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>No registrado</span>
+                                                    }
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                    <tr>
+                                        <td><span style="font-weight: bold; color: black;">Necesidades:</span></td>
+                                        <td>@cuidado.ListadoNecesidades</td>
+                                        <td><span style="font-weight: bold; color: black;">Fiebre:</span></td>
+                                        <td>@cuidado.Fiebre ºC</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span style="font-weight: bold; color: black;">Tensión:</span></td>
+                                        <td>@cuidado.Tension mmHg</td>
+                                        <td><span style="font-weight: bold; color: black;">Glucosa:</span></td>
+                                        <td>@cuidado.Insulina mg/dL</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span style="font-weight: bold; color: black;">Observaciones:</span></td>
+                                        <td colspan="3">@cuidado.Descripción</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                        }
+                    </DetailTemplate>
+                </GridTemplates>
+                <GridColumns>
+                    <GridColumn AutoFit="true" AllowEditing="false" Field="@nameof(Cuidado.FechaCuidado)" HeaderText="Fecha" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" Format="d" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }"></GridColumn>
+                    <GridColumn AutoFit="true" AllowEditing="false" Field="@nameof(Cuidado.Titulo)" HeaderText="Nombre" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }"></GridColumn>
+                    <GridColumn AutoFit="true" AllowEditing="false" Field="@nameof(Cuidado.UidCuidado)" HeaderText="Cuidado" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }">
+                        <Template>
+                            @{
+                                var ctx = context as Cuidado;
+                                var cd = Statics.ListadoCuidadosCategoria.First(c => c.UidMaestroCuidados == ctx.UidMaestroCuidados);
+
+                                <span>@cd.TituloCuidado</span>
+                            }
+                        </Template>
+                    </GridColumn>
+                    <GridColumn AutoFit="true" AllowEditing="false"  Field="@nameof(Cuidado.UidPaciente)" HeaderText="Paciente" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }">
+                        <Template>
+                            @{
+                                var ctx = context as Cuidado;
+                                var cd = MisPacientes.First<Paciente>(p => p.UidPaciente == ctx.UidPaciente);
+                                if (cd != null)
+                                {
+                                    <span>@cd.Nombre @cd.Apellidos</span>
+                                }
+                                else
+                                {
+                                    <span>No registrado</span>
+                                }
+                            }
+                        </Template>
+                    </GridColumn>
+                    <GridColumn AutoFit="true" AllowEditing="false"  Field="@nameof(Cuidado.UidTecnicoAsign)" HeaderText="Profesional" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }">
+                        <Template>
+                            @{
+
+                                var ctx = context as Cuidado;
+                                var cd = Perfil;
+                                if (cd != null)
+                                {
+                                    <span>@cd.Nombre</span>
+                                }
+                                else
+                                {
+                                    <span>No registrado</span>
+                                }
+                            }
+                        </Template>
+                    </GridColumn>
+                    <GridColumn AutoFit="false" AllowEditing="false"  Field="@nameof(Cuidado.ListadoNecesidades)" HeaderText="Necesidades" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }"></GridColumn>
+                    <GridColumn AutoFit="true" AllowEditing="false"  Field="@nameof(Cuidado.Fiebre)" HeaderText="Fiebre" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }">
+                        <Template>
+                            @{
+                                var ctx = context as Cuidado;
+                                <span>@ctx.Fiebre ºC</span>
+                            }
+                        </Template>
+                    </GridColumn>
+                    <GridColumn AutoFit="true" AllowEditing="false" Field="@nameof(Cuidado.Tension)" HeaderText="Tensión" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }">
+                        <Template>
+                            @{
+                                var ctx = context as Cuidado;
+                                <span>@ctx.Tension mmHg</span>
+                            }
+                        </Template>
+                    </GridColumn>
+                    <GridColumn AutoFit="true" AllowEditing="false" Field="@nameof(Cuidado.Insulina)" HeaderText="Glucosa" HeaderTextAlign="TextAlign.Left" TextAlign="TextAlign.Left" FilterSettings="new FilterSettings { Type = Syncfusion.Blazor.Grids.FilterType.CheckBox }">
+                        <Template>
+                            @{
+                                var ctx = context as Cuidado;
+                                <span>@ctx.Insulina mg/dL</span>
+                            }
+                        </Template>
+                    </GridColumn>
+                    <GridColumn AutoFit="true" AllowEditing="true"  Field="@nameof(Cuidado.Leido)" HeaderText="Leído" EditType="EditType.BooleanEdit" HeaderTextAlign="TextAlign.Center" TextAlign="TextAlign.Center">
+                        <Template>
+                            @{
+                                var ctx = (context as Cuidado).Leido;
+                                <span style="font-size:40px"> <SfCheckBox CssClass="checkbox-grande" @bind-Checked="@ctx"></SfCheckBox> </span>
+                            }
+                        </Template>
+                    </GridColumn>
+                    <GridColumn AutoFit="true" HeaderText="Configuración" HeaderTextAlign="TextAlign.Right" TextAlign="TextAlign.Right">
+                        <GridCommandColumns>
+                            <GridCommandColumn Type="CommandButtonType.Edit" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-edit", CssClass = "e-flat e-success" })"></GridCommandColumn>
+                            <GridCommandColumn Type="CommandButtonType.Delete" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-delete", CssClass = "e-flat e-danger" })"></GridCommandColumn>
+                            <GridCommandColumn Type="CommandButtonType.Save" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-update", CssClass = "e-flat" })"></GridCommandColumn>
+                            <GridCommandColumn Type="CommandButtonType.Cancel" ButtonOption="@(new CommandButtonOptions() { IconCss = "e-icons e-cancel-icon", CssClass = "e-flat" })"></GridCommandColumn>
+                        </GridCommandColumns>
+                    </GridColumn>
+                </GridColumns>
+            </SfGrid>
+        </div>
+
+        <style type="text/css" class="cssStyles">
+            .detailtable td {
+                font-size: 13px;
+                padding: 4px;
+                max-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        </style>
+    </div>
+
+</div>
+
+<FormularioCuidadosComponent @ref="FormCuidadosRef" User="@User" PacienteSeleccionado="@paciente" CuidadoEdit="@CuidadoEdit" Editando="Editando" ></FormularioCuidadosComponent>
+<BaseComponent @ref="Globals"></BaseComponent>
+@inject DbQry DbQry
+@code{
+    #region Variables
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+    SfChip? _chipsNecesidades;
+    private string? UsuarioId;
+    public PerfilUsuario Perfil = new();
+    public Guid PacienteSeleccionado;
+    public List<Paciente> MisPacientes = new();
+    [Parameter] public ApplicationUser User { get; set; }
+    public List<ChipItem> _listadoNecesidades = new();
+    SfGrid<Cuidado>? GridCuidados;
+    SfDropDownList<Guid, _MaestroNecesidades>? NecesidadesRef;
+    public List<Cuidado> ListadoCuidados = new();
+    public List<_MaestroNecesidades> listadoMN = new();
+    public Guid _CuidadosSelected { get; set; }
+    public Guid _NecesidadesSelected { get; set; }
+    BaseComponent? Globals;
+    FormularioCuidadosComponent? FormCuidadosRef { get; set; }
+    private Paciente paciente = new Paciente();
+    public Cuidado? CuidadoEdit = new Cuidado();
+    public bool Editando = false;
+    public string[] GroupedColumns = new string[] { "FechaCuidado" };
+    #endregion
+
+
+    private int ListadoNecesidades = 0;
+
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _CuidadosSelected = Statics.ListadoCuidadosCategoria.First().UidMaestroCuidados;
+            listadoMN = Statics.ListadoNecesidades.Where(n => n.CategoriaCuidado == ListadoNecesidades).ToList();
+            FormCuidadosRef!.RefreshData += async (sender, args) => await ActionBeginDropDown();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var AuthState = await AuthenticationState;
+        var id = AuthState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (id == null) return;
+        UsuarioId = id;
+        Perfil = DbQry.First<PerfilUsuario>(t => t.IdAspNetUser == User.Id)!;
+        MisPacientes = DbQry.All<Paciente>(t => t.UidUsuarioGestor == Perfil!.UidPerfil).ToList();
+        MisPacientes.Insert(0, new Paciente { UidPaciente = Guid.Empty, Nombre = "Todos" });
+        ListadoCuidados = DbQry.All<Cuidado>(t => t.UidTecnicoAsign == Perfil!.UidPerfil).OrderByDescending(c => c.FechaCuidado).ToList();
+    }
+
+    private async Task ActionBeginDropDown()
+    {
+        if (PacienteSeleccionado == Guid.Empty)
+        {
+            ListadoCuidados = DbQry.All<Cuidado>(t => t.UidTecnicoAsign == Perfil!.UidPerfil).OrderByDescending(c => c.FechaCuidado).ToList();
+        }
+        else ListadoCuidados = DbQry.All<Cuidado>(t => t.UidTecnicoAsign == Perfil!.UidPerfil && t.UidPaciente == PacienteSeleccionado).OrderByDescending(c => c.FechaCuidado).ToList();
+
+        if (GridCuidados != null)
+        {
+            await InvokeAsync(StateHasChanged);
+            await GridCuidados.Refresh();
+        }
+    }
+
+    public async Task OnCellEdit(CellEditArgs<Cuidado> arg)
+    {
+        if (arg.ColumnName == "Leido")
+        {
+            arg.Cancel = true;
+            arg.Data.Leido = arg.Data.Leido == true ? false : true;
+            DbQry.Update<Cuidado>(arg.Data);
+        }
+
+        await ActionBeginDropDown();
+
+    }
+
+    public void QueryCellInfoHandler(QueryCellInfoEventArgs<Cuidado> args)
+    {
+        if (args.Data.Leido == true)
+        {
+            args.Cell.AddClass(new string[] { "leido" });
+        }
+    }
+
+    private async Task OnToolbarClick(Syncfusion.Blazor.Navigations.ClickEventArgs args)
+    {
+        try
+        {
+            if (args.Item.Text == "Registrar cuidado")
+            {
+                if (PacienteSeleccionado == Guid.Empty)
+                {
+                    await Globals!.ShowWarning("Debe seleccionar un paciente de la lista desplegable antes de registrar un cuidado");
+                    return;
+                }
+                Editando = false;
+                paciente = DbQry.First<Paciente>(p => p.UidPaciente == PacienteSeleccionado)!;
+
+                CuidadoEdit = new Cuidado
+                    {
+                        UidPaciente = PacienteSeleccionado,
+                        UidTecnicoAsign = Perfil.UidPerfil,
+                        FechaCuidado = DateTime.Now,
+                        ListadoNecesidades = string.Empty,
+                        UidMaestroCuidados = Statics.ListadoCuidadosCategoria.First().UidMaestroCuidados,
+                        Fiebre = 36,
+                        Tension = 120,
+                        Insulina = 15
+                    };
+                await InvokeAsync(StateHasChanged);
+                await FormCuidadosRef!.Clic();
+            }
+        }
+        catch (Exception ex)
+        {
+            await Globals!.ShowError(ex);
+        }
+    }
+
+    public async Task OnActionBegin(ActionEventArgs<Cuidado> args)
+    {
+        try
+        {
+            if (args.RequestType == Syncfusion.Blazor.Grids.Action.Save && args.Action == "Add")
+            {
+                args.Cancel = true;
+                ListadoCuidados = DbQry.All<Cuidado>(t => t.UidTecnicoAsign == Perfil!.UidPerfil && t.UidPaciente == PacienteSeleccionado).OrderByDescending(c => c.FechaCuidado).ToList();
+                await GridCuidados!.Refresh();
+                await InvokeAsync(StateHasChanged);
+
+            }
+            if (args.RequestType.Equals(Syncfusion.Blazor.Grids.Action.Delete))
+            {
+                DbQry.Delete<Cuidado>(args.Data);
+            }
+        }
+        catch (Exception)
+        {
+            await Globals!.ShowError("Ha ocurrido algún error, pruebe a recargar la página por favor");
+        }
+    }
+
+    public async Task OnActionComplete(ActionEventArgs<Cuidado> args)
+    {
+        if (args.RequestType == Syncfusion.Blazor.Grids.Action.Save && args.Action == "Add")
+        {
+            ListadoCuidados = DbQry.All<Cuidado>(t => t.UidTecnicoAsign == Perfil!.UidPerfil && t.UidPaciente == PacienteSeleccionado).OrderByDescending(c => c.FechaCuidado).ToList();
+            await GridCuidados!.Refresh();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public async Task OnCommandClicked(CommandClickEventArgs<Cuidado> args)
+    {
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Edit))
+        {
+            CuidadoEdit = args.RowData as Cuidado;
+            paciente = DbQry.First<Paciente>(p => p.UidPaciente == CuidadoEdit.UidPaciente)!;
+            await FormCuidadosRef!.Clic(paciente, CuidadoEdit);            
+        }
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Delete))
+        {
+            DbQry.Delete<Cuidado>(args.RowData);
+            await Globals!.ShowInfo("Cuidado eliminado correctamente");
+        }
+        if (args.CommandColumn.Type.Equals(CommandButtonType.Save))
+        {
+        }
+    }
+
+
+}
+
+<style>
+    .rounded-corner {
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+        border-radius: 25px;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .rounded-corner:hover {
+        box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Estilo para el input tipo buscador similar al de Google */
+    .buscador {
+        padding: 10px 30px 10px 10px !important; /* Ajusta el padding según necesidad */
+        border: 1px solid #ccc !important; /* Borde del input */
+        border-radius: 20px !important; /* Bordes redondeados */
+        box-sizing: border-box !important; /* Incluye el padding y el borde en el ancho total */
+        outline: none !important; /* Quita el contorno al hacer clic en el input */
+    }
+
+    .e-ddl.e-input-group .e-input-value, .e-ddl.e-input-group .e-input-value:focus {
+        font-family: inherit;
+        font-size: 14px;
+        height: auto;
+        margin: 0;
+        outline: none;
+        width: 100%;
+        padding-top: 7px;
+    }
+
+    .e-grid .e-gridcontent .e-rowcell.leido {
+        background-color: #A0F67C !important;
+        border-color: #d6e9c6;
+        color: #206121 !important;
+    }
+</style>
